@@ -303,6 +303,9 @@ textarea.inp{resize:vertical;line-height:1.5}
 .phrase .j{font-family:var(--jp);font-size:17px}
 .phrase .r{font-size:12.5px;color:var(--ink-soft)}
 .phrase .btn{grid-row:span 2}
+.fx{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin-top:12px}
+.fx b{font-family:var(--hand);font-size:22px;color:var(--grass)}
+.fx span{font-size:12.5px;color:var(--ink-soft)}
 .calc{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end}
 .calc .eq{padding-bottom:9px;color:var(--ink-soft)}
 .foot{text-align:center;color:var(--ink-faint);font-size:18px;margin:34px 0 10px;font-family:var(--hand);font-weight:700}
@@ -782,10 +785,11 @@ function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e)
    - claude : claude.ai 아티팩트 db/assets
    - local  : 이 기기 브라우저(IndexedDB/localStorage)
    ========================================================= */
-const STATE_DEFAULTS = {done:{}, ate:{}, start:"", checkin:"15:00", checkout:"11:00", resv:"", memo:"", rate:"9.4", outDep:"10:10", backDep:"12:15", outFlight:"", backFlight:"", album:""};
+const STATE_DEFAULTS = {done:{}, ate:{}, start:"", checkin:"15:00", checkout:"11:00", resv:"", memo:"", rate:"", outDep:"10:10", backDep:"12:15", outFlight:"", backFlight:"", album:""};
 let state = Object.assign(JSON.parse(JSON.stringify(STATE_DEFAULTS)), lsGet("hk-state", {}));
 const FLIGHT_V = 2;
 function applyBooking(st){
+  if(st.rate === "9.4") st.rate = "";   // 예전 고정 기본값(9.4원)은 버리고 자동 환율 사용
   if(st.v === FLIGHT_V) return st;
   return Object.assign(st, {v:FLIGHT_V, start:"2026-10-23", outDep:"10:10", backDep:"12:15",
     outFlight:"트리니티항공 TW263 · 인천 T1 10:10 → 신치토세 13:00",
@@ -803,6 +807,27 @@ let syncMsg = "";
 
 const albumUrl = () => (state.album || window.TRIP_ALBUM || "").trim();
 const validAlbum = u => /^https:\/\/(photos\.app\.goo\.gl|photos\.google\.com|goo\.gl\/photos|www\.icloud\.com\/sharedalbum|share\.icloud\.com)\//.test(u);
+
+/* ---- 엔화 환율: 비워두면 오늘 환율 자동, 직접 입력하면 그 값 ---- */
+const FX_FALLBACK = 8.7;           // 2026년 9월 시장 환율 근처(1엔당 원). 인터넷이 안 될 때만 사용
+let fx = lsGet("hk-fx", null);     // {rate, date, at}
+const currentRate = () => parseFloat(state.rate) || (fx && fx.rate) || FX_FALLBACK;
+async function fetchRate(){
+  if(fx && Date.now() - fx.at < 6*60*60*1000) return;
+  const tries = [
+    ["https://api.frankfurter.dev/v1/latest?base=JPY&symbols=KRW", j => [j.rates && j.rates.KRW, j.date]],
+    ["https://api.frankfurter.app/latest?from=JPY&to=KRW", j => [j.rates && j.rates.KRW, j.date]],
+    ["https://open.er-api.com/v6/latest/JPY", j => [j.rates && j.rates.KRW, (j.time_last_update_utc || "").slice(5, 16)]]
+  ];
+  for(const [url, pick] of tries){
+    try{
+      const r = await fetch(url); if(!r.ok) continue;
+      const [rate, date] = pick(await r.json());
+      if(rate > 1 && rate < 30){ fx = {rate, date: date || "", at: Date.now()}; lsSet("hk-fx", fx); renderAll(); return; }
+    }catch(e){}
+  }
+}
+const won = y => Math.round(y * currentRate() / 100) * 100;
 
 /* 상태를 "done.d1-beer": true 같은 평평한 키로 바꿔 필드 단위로 저장(동시 수정 충돌 줄이기) */
 function flatState(st){
@@ -1051,7 +1076,7 @@ function renderPlan(){
       <h2>${esc(day.title)}</h2>
       <p>${esc(day.summary)}</p>
       <div class="sumrow">
-        <span class="chip">1인 예상 경비 <b>약 ${yen(cost)}</b></span>
+        <span class="chip">1인 예상 경비 <b>약 ${yen(cost)}</b> (≈ ${won(cost).toLocaleString("ko-KR")}원)</span>
         <span class="chip">완료 <b>${doneN}/${items.length}</b></span>
         ${albumUrl() ? `<a class="chip alb" href="${esc(albumUrl())}" target="_blank" rel="noopener">📷 우리 공유 앨범</a>` : `<span class="chip">사진 <b>${nPh}장</b></span>`}
         ${day.n===1 ? `<button class="chip fl" data-goinfo>✈ 인천 ${esc(state.outDep)} 출발 기준 · 공항 도착 ${esc(fmtMin(toMin(state.outDep)-120))} · 변경</button>` : ""}
@@ -1335,9 +1360,15 @@ function renderInfo(){
         <span class="eq">≈</span>
         <label class="f">원(₩)<input class="inp" id="c-won" readonly></label>
       </div>
-      <label class="f" style="margin-top:10px">환율: 1엔 = ? 원 (카드 앱에서 보고 고쳐 쓰세요)
-        <input class="inp" id="c-rate" inputmode="decimal" value="${esc(state.rate)}" style="max-width:120px">
+      <div class="fx">
+        <b>100엔 ≈ ${Math.round(currentRate()*100).toLocaleString("ko-KR")}원</b>
+        <span>${parseFloat(state.rate) ? "직접 입력한 환율" : fx ? `오늘 시장 환율 자동${fx.date ? " · " + esc(fx.date) + " 기준" : ""}` : "기본값(2026년 9월 기준). 인터넷에 연결되면 오늘 환율로 바뀌어요"}</span>
+      </div>
+      <label class="f" style="margin-top:8px">환율 직접 입력: 1엔 = ? 원 (비워두면 자동)
+        <input class="inp" id="c-rate" inputmode="decimal" value="${esc(state.rate)}" placeholder="${currentRate().toFixed(2)}" style="max-width:120px">
       </label>
+      ${parseFloat(state.rate) ? `<div class="acts"><button class="btn" data-fx-auto>오늘 환율로 되돌리기</button></div>` : ""}
+      <p class="mini" style="margin:8px 0 0">시장 환율이에요. 트래블카드·은행 환전은 수수료 때문에 조금 달라요.</p>
     </div>
 
     <div class="sec-title"><h2>교통 요금 한눈에</h2><span class="jp">交通</span></div>
@@ -1370,7 +1401,7 @@ function renderInfo(){
 }
 function calc(){
   const y = parseFloat(($("#c-yen")?.value||"").replace(/,/g,"")) || 0;
-  const r = parseFloat($("#c-rate")?.value) || 0;
+  const r = currentRate();
   const w = $("#c-won"); if(w) w.value = Math.round(y*r).toLocaleString("ko-KR") + "원";
 }
 
@@ -1440,6 +1471,7 @@ document.addEventListener("click", async e => {
     if(!validAlbum(u)){ $("#albumMsg").textContent = "구글 포토 또는 아이클라우드 공유 앨범 링크를 붙여넣어 주세요."; return; }
     state.album = u; saveState(); return renderMem();
   }
+  if(t.dataset.fxAuto !== undefined){ state.rate = ""; saveState(); fx = null; lsSet("hk-fx", null); renderInfo(); fetchRate(); return; }
   if(t.dataset.edit){ return openEditor(t.dataset.edit); }
   if(t.dataset.add){ return openEditor(null, Number(t.dataset.add)); }
   if(t.dataset.restore){ try{ await removeItem(t.dataset.restore); }catch(err){ setSync("되살리기 실패. 다시 시도하세요."); } return renderPlan(); }
@@ -1489,6 +1521,7 @@ document.addEventListener("change", async e => {
     return;
   }
   if(t.id === "i-outdep" || t.id === "i-backdep"){ if(t.value){ state[t.id === "i-outdep" ? "outDep" : "backDep"] = t.value; saveState(); renderInfo(); } return; }
+  if(t.id === "c-rate"){ renderInfo(); return; }
   if(t.id === "i-start"){ state.start = t.value; saveState(); renderHero(); return; }
 });
 document.addEventListener("input", e => {
@@ -1698,6 +1731,7 @@ async function initCloud(){
   if(["plan","food","mem","info"].includes(hash)) view = hash;
   await initLocal();   // 먼저 이 기기 데이터로 바로 그림
   show(view);
+  fetchRate();
   if(window.TRIP_CONFIG && window.TRIP_CONFIG.supabaseUrl){ await initShared(); renderAll(); return; }
   const ok = await initCloud();
   if(ok) renderAll();
