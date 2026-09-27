@@ -251,6 +251,31 @@ label.f{display:grid;gap:4px;font-size:12.5px;color:var(--ink-soft)}
 .lb-nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between}
 .x{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:4px 14px}
 
+/* 일정 편집 */
+.add-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:4px 0 0 92px}
+@media (max-width:420px){.add-row{margin-left:0}}
+.mini{font-size:12px;color:var(--ink-faint)}
+.hidden-list{margin:14px 0 0;font-size:13px;color:var(--ink-soft)}
+.hidden-list summary{cursor:pointer;font-family:var(--hand);font-weight:700;font-size:16px}
+.hid{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1.5px dashed var(--line)}
+.note{margin:10px 0 0;padding:8px 12px;border-radius:12px 8px 12px 6px;background:var(--amber-soft);font-size:13.5px}
+.note b{color:var(--amber);font-family:var(--hand);font-size:15px}
+.edited{margin-top:8px;font-size:11.5px;color:var(--ink-faint);text-align:right}
+.tag.mine{background:var(--skyc);color:#fff;transform:rotate(-2deg)}
+.sheet,.gate{position:fixed;inset:0;z-index:50;background:rgba(30,35,45,.45);display:flex;align-items:flex-end;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 20px) 0 0}
+.gate{align-items:center;background:var(--paper);padding-inline:16px}
+.sheet-in,.gate-in{width:100%;max-width:560px;max-height:100%;overflow:auto;background:var(--card);border-radius:24px 24px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom,0px));display:grid;gap:10px;box-shadow:0 -10px 30px -10px rgba(0,0,0,.4)}
+.gate-in{border-radius:var(--r);border:1.5px solid var(--line);max-width:400px}
+.gate-in .btn{justify-content:center;padding:9px 14px;font-size:15px}
+.gate-in h2{margin:0;font-family:var(--hand);font-size:32px}
+.gate-in p{margin:0;color:var(--ink-soft);font-size:14px}
+.sheet-head{display:flex;justify-content:space-between;align-items:center}
+.sheet-head h3{margin:0;font-family:var(--hand);font-size:24px}
+.x2{background:none;border:1.5px solid var(--line);border-radius:999px;padding:3px 12px;color:var(--ink-soft)}
+.sheet-acts{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.sheet-acts>div{display:flex;gap:6px;flex-wrap:wrap}
+textarea.inp{resize:vertical;line-height:1.5}
+
 /* 정보 */
 .info{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
 .info+.info{margin-top:10px}
@@ -350,6 +375,9 @@ label.f{display:grid;gap:4px;font-size:12.5px;color:var(--ink-soft)}
   </nav>
 </div>
 <div id="lb" class="lb" hidden></div>
+<div id="sheet" class="sheet" hidden></div>
+<div id="gate" class="gate" hidden></div>
+<script src="config.js"></script>
 <input type="file" id="quickFile" accept="image/*" multiple hidden>
 
 <script>
@@ -720,12 +748,13 @@ const blogUrl = q => "https://search.naver.com/search.naver?where=blog&query=" +
 const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(t||""); return m ? (+m[1])*60 + (+m[2]) : null; };
 const fmtMin = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0"); };
 function itemTime(i){
+  if(i._tFixed) return i.t || "";
   const r = REL[i.id]; if(!r) return i.t || "";
   const base = toMin(r[0] === "out" ? state.outDep : state.backDep);
   return base == null ? (i.t || "") : fmtMin(base + r[1]);
 }
 function tooEarly(i){ const r = REL[i.id]; if(!r || r[0] !== "back") return false; const m = toMin(itemTime(i)); return m != null && m < 7*60; }
-const allItems = () => DAYS.flatMap(d => d.items.map(i => ({...i, day:d.n})));
+const allItems = () => DAYS.flatMap(d => dayItems(d.n));
 const itemById = id => allItems().find(i => i.id === id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
@@ -733,9 +762,14 @@ function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.pa
 function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
 /* =========================================================
-   상태 (체크, 날짜, 숙소 메모) — 클라우드 가능 시 db, 아니면 localStorage
+   상태와 저장소
+   저장 방식 세 가지:
+   - shared : Supabase (config.js 설정 시) — 동행과 일정·체크·사진 공유
+   - claude : claude.ai 아티팩트 db/assets
+   - local  : 이 기기 브라우저(IndexedDB/localStorage)
    ========================================================= */
-let state = Object.assign({done:{}, ate:{}, start:"", checkin:"15:00", checkout:"11:00", resv:"", memo:"", rate:"9.4", outDep:"10:10", backDep:"12:15", outFlight:"", backFlight:""}, lsGet("hk-state", {}));
+const STATE_DEFAULTS = {done:{}, ate:{}, start:"", checkin:"15:00", checkout:"11:00", resv:"", memo:"", rate:"9.4", outDep:"10:10", backDep:"12:15", outFlight:"", backFlight:""};
+let state = Object.assign(JSON.parse(JSON.stringify(STATE_DEFAULTS)), lsGet("hk-state", {}));
 const FLIGHT_V = 2;
 function applyBooking(st){
   if(st.v === FLIGHT_V) return st;
@@ -744,22 +778,75 @@ function applyBooking(st){
     backFlight:"진에어 LJ204 · 신치토세 12:15 → 인천 T2 15:30"});
 }
 state = applyBooking(state);
+
+let mode = "local";        // "shared" | "claude" | "local"
+let photoMode = "local";   // "shared" | "cloud" | "cloud-read" | "local" | "none"
+let OV = lsGet("hk-items", {});   // 일정 수정분: {id: {day, data, deleted, updated_by}}
+let myName = lsGet("hk-name", "");
 let cloud = {db:null, assets:null, downloads:null};
+let sb = null;             // Supabase client
+let syncMsg = "";
+
+/* 상태를 "done.d1-beer": true 같은 평평한 키로 바꿔 필드 단위로 저장(동시 수정 충돌 줄이기) */
+function flatState(st){
+  const o = {};
+  for(const [k,v] of Object.entries(st)){
+    if(v && typeof v === "object" && !Array.isArray(v)){ for(const [k2,v2] of Object.entries(v)) o[k+"."+k2] = v2; }
+    else o[k] = v;
+  }
+  return o;
+}
+function stateFromFlat(flat){
+  const st = applyBooking(JSON.parse(JSON.stringify(STATE_DEFAULTS)));
+  for(const [k,v] of Object.entries(flat)){
+    const i = k.indexOf(".");
+    if(i > 0 && (k.slice(0,i) === "done" || k.slice(0,i) === "ate")){ st[k.slice(0,i)][k.slice(i+1)] = v; }
+    else st[k] = v;
+  }
+  return st;
+}
+let lastFlat = flatState(state);
 let saveTimer = null;
 function saveState(){
   lsSet("hk-state", state);
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    if(!cloud.db) return;
-    try{ await cloud.db.doc("trip/state").set(JSON.parse(JSON.stringify(state))); }catch(e){}
-  }, 700);
+    const now = flatState(state), changed = [];
+    for(const k of new Set([...Object.keys(now), ...Object.keys(lastFlat)])){
+      if(JSON.stringify(now[k]) !== JSON.stringify(lastFlat[k])) changed.push(k);
+    }
+    lastFlat = now;
+    if(!changed.length) return;
+    try{
+      if(mode === "shared"){
+        const rows = changed.map(k => ({key:k, value: now[k] === undefined ? null : now[k], updated_by: myName || null, updated_at: new Date().toISOString()}));
+        const { error } = await sb.from("kv").upsert(rows); if(error) throw error;
+      }else if(mode === "claude"){
+        await cloud.db.doc("trip/state").set(JSON.parse(JSON.stringify(state)));
+      }
+    }catch(e){ console.warn(e); setSync("저장 실패. 인터넷 연결을 확인하세요."); }
+  }, 600);
 }
 
-/* =========================================================
-   사진 저장소
-   ========================================================= */
-let photos = [];          // {id, day, spot, caption, takenAt, createdAt, url}
-let photoMode = "local";  // "cloud" | "cloud-read" | "local" | "none"
+/* ---- 일정 수정분 저장 ---- */
+async function saveItem(id, day, data, deleted){
+  const row = {day, data, deleted: !!deleted, updated_by: myName || ""};
+  OV[id] = row;
+  if(mode === "shared"){
+    const { error } = await sb.from("items").upsert({id, ...row, updated_at: new Date().toISOString()}); if(error) throw error;
+  }else if(mode === "claude"){
+    await cloud.db.doc("items/" + id).set(row);
+  }else lsSet("hk-items", OV);
+}
+async function removeItem(id){
+  delete OV[id];
+  if(mode === "shared"){ const { error } = await sb.from("items").delete().eq("id", id); if(error) throw error; }
+  else if(mode === "claude"){ await cloud.db.doc("items/" + id).delete(); }
+  else lsSet("hk-items", OV);
+}
+
+/* ---- 사진 ---- */
+let photos = [];          // {id, day, spot, caption, takenAt, createdAt, url, by}
 let idb = null;
 
 function openIDB(){
@@ -824,12 +911,18 @@ async function addPhotos(files, day, spot, caption, onProgress){
     const f = files[i];
     try{
       const blob = await compress(f);
-      const rec = {day:Number(day)||0, spot:spot||"", caption:caption||"", takenAt:f.lastModified||Date.now(), createdAt:Date.now()};
-      if(photoMode === "cloud"){
+      const rec = {day:Number(day)||0, spot:spot||"", caption:caption||"", takenAt:f.lastModified||Date.now(), createdAt:Date.now(), by: myName || ""};
+      const id = uid();
+      if(photoMode === "shared"){
+        const path = `day${rec.day}/${id}.jpg`;
+        const up = await sb.storage.from("photos").upload(path, blob, {contentType: blob.type || "image/jpeg", upsert:false});
+        if(up.error) throw up.error;
+        const { error } = await sb.from("photos").insert({id, day:rec.day, spot:rec.spot, caption:rec.caption, path, taken_at:rec.takenAt, created_at:rec.createdAt, by_name:rec.by});
+        if(error) throw error;
+      }else if(photoMode === "cloud"){
         const up = await cloud.assets.upload(blob, {type: blob.type && blob.type.startsWith("image/") ? blob.type : "image/jpeg"});
-        await cloud.db.collection("photos").doc(uid()).set({...rec, asset:up.id});
+        await cloud.db.collection("photos").doc(id).set({...rec, asset:up.id});
       }else if(photoMode === "local"){
-        const id = uid();
         await idbPut({...rec, id, blob});
       }else throw new Error("no storage");
       ok++;
@@ -837,9 +930,11 @@ async function addPhotos(files, day, spot, caption, onProgress){
     onProgress && onProgress(i+1, files.length);
   }
   if(photoMode === "local") await loadLocalPhotos();
+  if(photoMode === "shared") await loadSharedPhotos();
   return {ok, fail};
 }
 async function updatePhoto(id, patch){
+  if(photoMode === "shared"){ const { error } = await sb.from("photos").update(patch).eq("id", id); if(error) throw error; await loadSharedPhotos(); return; }
   if(photoMode === "cloud"){ await cloud.db.doc("photos/"+id).update(patch); return; }
   if(photoMode === "local"){
     const tx = idb.transaction("photos", "readwrite"); const st = tx.objectStore("photos");
@@ -848,6 +943,11 @@ async function updatePhoto(id, patch){
   }
 }
 async function deletePhoto(p){
+  if(photoMode === "shared"){
+    const { error } = await sb.from("photos").delete().eq("id", p.id); if(error) throw error;
+    await sb.storage.from("photos").remove([p.path]);
+    await loadSharedPhotos(); return;
+  }
   if(photoMode === "cloud"){
     await cloud.db.doc("photos/"+p.id).delete();
     try{ await cloud.assets.delete(p.asset); }catch(e){}
@@ -860,7 +960,65 @@ async function deletePhoto(p){
   }
 }
 
+/* ---- Supabase(공유 모드) 읽기 ---- */
+const signed = new Map();   // path -> {url, exp}
+async function loadSharedPhotos(){
+  const { data, error } = await sb.from("photos").select("*").order("taken_at", {ascending:true});
+  if(error) throw error;
+  const need = data.map(r => r.path).filter(pth => { const c = signed.get(pth); return !c || c.exp < Date.now() + 30*60*1000; });
+  for(let i=0;i<need.length;i+=100){
+    const { data: urls, error: e2 } = await sb.storage.from("photos").createSignedUrls(need.slice(i,i+100), 60*60*12);
+    if(e2) throw e2;
+    urls.forEach(u => { if(u.signedUrl) signed.set(u.path, {url:u.signedUrl, exp:Date.now() + 12*60*60*1000}); });
+  }
+  photos = data.map(r => ({id:r.id, day:r.day, spot:r.spot||"", caption:r.caption||"", takenAt:r.taken_at, createdAt:r.created_at, by:r.by_name||"", path:r.path, url:(signed.get(r.path)||{}).url||""}));
+}
+async function loadSharedAll(){
+  const [it, kv] = await Promise.all([sb.from("items").select("*"), sb.from("kv").select("key,value")]);
+  if(it.error) throw it.error; if(kv.error) throw kv.error;
+  const ov = {}; it.data.forEach(r => ov[r.id] = {day:r.day, data:r.data||{}, deleted:r.deleted, updated_by:r.updated_by||""});
+  OV = ov; lsSet("hk-items", OV);
+  const flat = flatState(state); kv.data.forEach(r => flat[r.key] = r.value);
+  const a = document.activeElement;
+  const typing = a && a.classList && a.classList.contains("inp") && !a.closest("#sheet");
+  if(!typing){ state = stateFromFlat(flat); lastFlat = flatState(state); lsSet("hk-state", state); }
+  await loadSharedPhotos();
+  setSync("");
+}
+function setSync(msg){ syncMsg = msg; const el = $("#syncLine"); if(el) el.textContent = msg; }
+
 /* =========================================================
+   일정: 기본 일정 + 함께 수정한 내용 합치기
+   ========================================================= */
+const BASE_IDS = new Set(DAYS.flatMap(d => d.items.map(i => i.id)));
+function dayItems(n){
+  const d = DAYS.find(x => x.n === n); if(!d) return [];
+  const out = [];
+  let prev = -1;
+  d.items.forEach((b, idx) => {
+    const r = OV[b.id];
+    if(r && r.deleted) return;
+    const it = r ? {...b, ...r.data, id:b.id, day:n, _ov:r, _tFixed: !!(r.data && r.data.t)} : {...b, day:n};
+    const m = toMin(itemTime(it));
+    const key = m == null ? prev : m; prev = key;
+    out.push({it, key, ord: idx});
+  });
+  Object.entries(OV).forEach(([id, r]) => {
+    if(BASE_IDS.has(id) || r.deleted || Number(r.day) !== n) return;
+    const it = {...r.data, id, day:n, _ov:r, _custom:true, _tFixed:true};
+    const m = toMin(it.t);
+    out.push({it, key: m == null ? 1e6 : m, ord: 1000 + (r.data.created || 0) / 1e13});
+  });
+  out.sort((a,b) => a.key - b.key || a.ord - b.ord);
+  return out.map(o => o.it);
+}
+function hiddenItems(n){
+  const d = DAYS.find(x => x.n === n); if(!d) return [];
+  return d.items.filter(b => OV[b.id] && OV[b.id].deleted);
+}
+
+/* =========================================================
+   렌더: 일정/* =========================================================
    렌더: 일정
    ========================================================= */
 let curDay = lsGet("hk-day", 1);
@@ -875,8 +1033,9 @@ function dayDate(n){
 
 function renderPlan(){
   const day = DAYS.find(d => d.n === curDay) || DAYS[0];
-  const cost = day.items.reduce((s,i) => s + (i.cost||0), 0);
-  const doneN = day.items.filter(i => state.done[i.id]).length;
+  const items = dayItems(day.n), hidden = hiddenItems(day.n);
+  const cost = items.reduce((s,i) => s + (Number(i.cost)||0), 0);
+  const doneN = items.filter(i => state.done[i.id]).length;
   const nPh = photos.filter(p => p.day === day.n).length;
   $("#v-plan").innerHTML = `
     <div class="days" role="group" aria-label="일차 선택">
@@ -889,20 +1048,27 @@ function renderPlan(){
       <p>${esc(day.summary)}</p>
       <div class="sumrow">
         <span class="chip">1인 예상 경비 <b>약 ${yen(cost)}</b></span>
-        <span class="chip">완료 <b>${doneN}/${day.items.length}</b></span>
+        <span class="chip">완료 <b>${doneN}/${items.length}</b></span>
         <span class="chip">사진 <b>${nPh}장</b></span>
         ${day.n===1 ? `<button class="chip fl" data-goinfo>✈ 인천 ${esc(state.outDep)} 출발 기준 · 공항 도착 ${esc(fmtMin(toMin(state.outDep)-120))} · 변경</button>` : ""}
         ${day.n===4 ? `<button class="chip fl" data-goinfo>✈ 신치토세 ${esc(state.backDep)} 출발 기준 · 공항 도착 ${esc(fmtMin(toMin(state.backDep)-120))} · 변경</button>` : ""}
-        ${day.n===1 && toMin(itemTime(itemById("d1-hotel"))) > 16*60 ? `<span class="chip shu">비행기가 늦어 오후가 빠듯해요. '추천 추가' 일정은 빼세요</span>` : (day.items.some(i=>i.opt) ? `<span class="chip shu">추천 추가 일정 포함</span>` : "")}
+        ${day.n===1 && itemById("d1-hotel") && toMin(itemTime(itemById("d1-hotel"))) > 16*60 ? `<span class="chip shu">비행기가 늦어 오후가 빠듯해요. '추천 추가' 일정은 빼세요</span>` : (items.some(i=>i.opt) ? `<span class="chip shu">추천 추가 일정 포함</span>` : "")}
       </div>
     </div>
     <ol class="tl">
-      ${day.items.map(stopHTML).join("")}
-    </ol>`;
+      ${items.map(stopHTML).join("")}
+    </ol>
+    <div class="add-row">
+      <button class="btn primary" data-add="${day.n}">+ ${day.n}일차 일정 추가</button>
+      ${mode === "shared" ? `<span class="mini">수정하면 함께 가는 사람 화면에도 바로 반영돼요</span>` : ""}
+    </div>
+    ${hidden.length ? `<details class="hidden-list"><summary>숨긴 일정 ${hidden.length}개</summary>
+      ${hidden.map(b => `<div class="hid"><span>${esc(b.title)}</span><button class="btn" data-restore="${b.id}">되살리기</button></div>`).join("")}
+    </details>` : ""}`;
 }
 
 function linkRow(i){
-  const L = LINKS[i.id]; if(!L) return "";
+  const L = LINKS[i.id]; if(!L || i._custom) return "";
   const a = [`<a class="lk" href="${imgUrl(i.ja.split(/[（(/・]/)[0].trim() || L.kq)}" target="_blank" rel="noopener">사진 보기</a>`];
   if(L.wiki) a.push(`<a class="lk" href="${wikiUrl(L.wiki)}" target="_blank" rel="noopener">설명 (위키백과)</a>`);
   a.push(`<a class="lk" href="${blogUrl(L.kq)}" target="_blank" rel="noopener">여행 후기</a>`);
@@ -920,22 +1086,25 @@ function stopHTML(i){
     <div class="card">
       <div class="card-top">
         <div><h3>${esc(i.title)}</h3><div class="ja">${esc(i.ja || "")}</div></div>
-        ${tooEarly(i) ? `<span class="tag warn">시간 부족 · 생략</span>` : (i.opt ? `<span class="tag">추천 추가</span>` : "")}
+        ${tooEarly(i) ? `<span class="tag warn">시간 부족 · 생략</span>` : (i._custom ? `<span class="tag mine">직접 추가</span>` : (i.opt ? `<span class="tag">추천 추가</span>` : ""))}
       </div>
-      ${!ph.length && PHOTOS[i.id] ? `<figure class="ref"><img src="${photoSrc(PHOTOS[i.id])}" alt="${esc(i.title)} 참고 사진" loading="lazy" referrerpolicy="no-referrer"><figcaption><a href="${photoPage(PHOTOS[i.id])}" target="_blank" rel="noopener">참고 사진 · Wikimedia Commons</a></figcaption></figure>` : ""}
+      ${!ph.length && PHOTOS[i.id] && !i._custom ? `<figure class="ref"><img src="${photoSrc(PHOTOS[i.id])}" alt="${esc(i.title)} 참고 사진" loading="lazy" referrerpolicy="no-referrer"><figcaption><a href="${photoPage(PHOTOS[i.id])}" target="_blank" rel="noopener">참고 사진 · Wikimedia Commons</a></figcaption></figure>` : ""}
       ${ph.length ? `<button class="cover" data-open="${ph[0].id}"><img src="${esc(ph[0].url)}" alt="${esc(ph[0].caption||i.title)}" loading="lazy"><span>내 사진 ${ph.length}장</span></button>` : ""}
       ${(i.dur || costTxt) ? `<div class="meta">${i.dur ? `<span>⏱ ${esc(i.dur)}</span>` : ""}${costTxt ? `<span>¥ <b>${esc(costTxt)}</b></span>` : ""}</div>` : ""}
       ${i.desc ? `<p class="desc">${esc(i.desc)}</p>` : ""}
-      ${i.tips ? `<div class="tips">${i.tips}</div>` : ""}
-      ${i.how ? `<details class="how" ${i.type==="move" ? "open" : ""}><summary>가는 법</summary><ol class="steps">${i.how.map(s => `<li><span>${esc(s)}</span></li>`).join("")}</ol></details>` : ""}
+      ${i.tips && !i._custom ? `<div class="tips">${i.tips}</div>` : ""}
+      ${i.note ? `<div class="note"><b>메모</b> ${esc(i.note)}</div>` : ""}
+      ${i.how && i.how.length ? `<details class="how" ${i.type==="move" ? "open" : ""}><summary>가는 법</summary><ol class="steps">${i.how.map(s => `<li><span>${esc(s)}</span></li>`).join("")}</ol></details>` : ""}
       ${linkRow(i)}
       ${ph.length > 1 ? `<div class="thumbs">${ph.slice(1,9).map(p => `<img src="${esc(p.url)}" alt="${esc(p.caption||i.title)}" data-open="${p.id}" loading="lazy">`).join("")}</div>` : ""}
       <div class="acts">
         ${i.map ? `<a class="btn" href="${mapUrl(i.map)}" target="_blank" rel="noopener">지도</a>
         <a class="btn" href="${dirUrl(i.map)}" target="_blank" rel="noopener">여기까지 길찾기</a>` : ""}
-        ${photoMode==="cloud"||photoMode==="local" ? `<button class="btn" data-quick="${i.id}">사진 추가${ph.length ? ` <span class="n">${ph.length}</span>` : ""}</button>` : ""}
+        ${canUpload() ? `<button class="btn" data-quick="${i.id}">사진 추가${ph.length ? ` <span class="n">${ph.length}</span>` : ""}</button>` : ""}
         <button class="btn ${done ? "done-on" : ""}" data-done="${i.id}" aria-pressed="${done}">${done ? "다녀옴 ✓" : "다녀왔어요"}</button>
+        <button class="btn" data-edit="${i.id}">수정</button>
       </div>
+      ${i._ov && i._ov.updated_by ? `<div class="edited">${esc(i._ov.updated_by)}님이 ${i._custom ? "추가" : "수정"}</div>` : ""}
     </div>
   </li>`;
 }
@@ -984,19 +1153,19 @@ function renderFood(){
    ========================================================= */
 let memFilter = "all";
 function spotOptions(day){
-  const d = DAYS.find(x => x.n === Number(day));
   const opts = [`<option value="">장소 선택 안 함</option>`];
-  if(d) d.items.forEach(i => opts.push(`<option value="${i.id}">${esc(i.title)}</option>`));
+  dayItems(Number(day)).forEach(i => opts.push(`<option value="${i.id}">${esc(i.title)}</option>`));
   return opts.join("");
 }
 function renderMem(){
   const modeTxt = {
+    shared:`<span class="dot ok"></span>여행 멤버 모두에게 공유돼요. 같이 가는 사람이 올린 사진도 여기 함께 쌓여요.`,
     cloud:`<span class="dot ok"></span>클라우드에 저장돼요. 다른 기기에서 이 링크를 열어도 사진이 보여요.`,
     "cloud-read":`<span class="dot warn"></span>보기 전용이에요. 사진은 여행 수첩 주인만 올릴 수 있어요.`,
     local:`<span class="dot warn"></span>이 기기의 브라우저에 저장돼요. 방문 기록·사이트 데이터를 지우면 사진도 사라지니 원본은 휴대폰에도 남겨두세요.`,
     none:`<span class="dot"></span>이 브라우저에서는 사진을 저장할 수 없어요. 일반(비공개가 아닌) 창에서 열어주세요.`
   }[photoMode];
-  const canUp = photoMode === "cloud" || photoMode === "local";
+  const canUp = canUpload();
   const list = photos.filter(p => memFilter === "all" || String(p.day) === memFilter);
   const groups = [1,2,3,4,0].map(n => ({n, ps:list.filter(p => (p.day||0) === n)})).filter(g => g.ps.length);
   const defDay = memFilter !== "all" ? memFilter : String(curDay);
@@ -1030,7 +1199,7 @@ function renderMem(){
       const d = DAYS.find(x => x.n === g.n);
       return `<div class="album-day"><h3><span class="hanko">${d ? d.n : "+"}</span>${d ? esc(d.title) : "기타"} <small>${d && dayDate(d.n) ? esc(dayDate(d.n)) + " · " : ""}${g.ps.length}장</small></h3>
         <div class="photos">${g.ps.map(p => { const it = p.spot && itemById(p.spot);
-          return `<button class="ph" data-open="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption || (it && it.title) || "여행 사진")}" loading="lazy">${(p.caption || it) ? `<span>${esc(p.caption || it.title)}</span>` : ""}</button>`; }).join("")}</div></div>`;
+          return `<button class="ph" data-open="${p.id}" title="${esc(p.by ? p.by + "님이 올림" : "")}"><img src="${esc(p.url)}" alt="${esc(p.caption || (it && it.title) || "여행 사진")}" loading="lazy">${(p.caption || it) ? `<span>${esc(p.caption || it.title)}</span>` : ""}</button>`; }).join("")}</div></div>`;
     }).join("") : `<div class="empty"><span class="jp">思い出</span>아직 사진이 없어요. 여행 중 찍은 사진을 올리면 여기 일차별로 쌓여요.</div>`}`;
 }
 
@@ -1043,10 +1212,10 @@ function renderLB(){
   if(!p){ lb.hidden = true; return; }
   const it = p.spot && itemById(p.spot);
   const d = DAYS.find(x => x.n === p.day);
-  const canEdit = photoMode === "cloud" || photoMode === "local";
+  const canEdit = canUpload();
   const list = photos; const idx = list.indexOf(p);
   lb.innerHTML = `
-    <div class="lb-top"><span>${d ? d.n + "일차" : "기타"}${it ? " · " + esc(it.title) : ""} · ${new Date(p.takenAt||p.createdAt).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span><button class="x" data-lb="close">닫기</button></div>
+    <div class="lb-top"><span>${d ? d.n + "일차" : "기타"}${it ? " · " + esc(it.title) : ""} · ${new Date(p.takenAt||p.createdAt).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}${p.by ? " · " + esc(p.by) : ""}</span><button class="x" data-lb="close">닫기</button></div>
     <div class="lb-img"><img src="${esc(p.url)}" alt="${esc(p.caption||"여행 사진")}"></div>
     <div class="lb-bot">
       ${canEdit ? `<input class="inp" id="lbCap" maxlength="80" value="${esc(p.caption||"")}" placeholder="메모 추가">` : (p.caption ? `<div style="color:#fff">${esc(p.caption)}</div>` : "")}
@@ -1087,6 +1256,15 @@ function renderInfo(){
         <a class="btn" href="${dirUrl(HOTEL_Q)}" target="_blank" rel="noopener">호텔까지 길찾기</a>
       </div>
       <div class="tips" style="margin-top:12px"><b>택시 탈 때</b> 위 일본어 주소를 기사에게 보여주세요. 체크인·체크아웃 시간과 예약 번호는 바우처를 보고 직접 고쳐 적으면 이 기기에 저장돼요.</div>
+    </div>
+
+    <div class="sec-title"><h2>함께 쓰기</h2><span class="jp">いっしょに</span></div>
+    <div class="info">
+      <div class="mode">${mode === "shared" ? `<span class="dot ok"></span>공유 모드: 일정 수정, 다녀옴 체크, 사진이 여행 멤버 모두에게 저장돼요.` : mode === "claude" ? `<span class="dot ok"></span>claude.ai 저장소에 저장돼요. 동행과 함께 쓰려면 GitHub Pages 주소로 여세요.` : `<span class="dot warn"></span>이 기기에만 저장돼요. 동행과 함께 쓰려면 GitHub Pages 주소로 여세요.`}</div>
+      <label class="f" style="margin-top:10px">내 이름 (수정·사진에 표시돼요)
+        <input class="inp" id="i-name" maxlength="20" value="${esc(myName)}" placeholder="예) 민순">
+      </label>
+      ${mode === "shared" ? `<div class="acts"><button class="btn" data-sync>지금 새로고침</button><span class="mini" id="syncLine">${esc(syncMsg)}</span></div>` : ""}
     </div>
 
     <div class="sec-title"><h2>항공편</h2><span class="jp">フライト</span></div>
@@ -1224,6 +1402,11 @@ document.addEventListener("click", async e => {
   if(t.dataset.open){ return openLB(t.dataset.open); }
   if(t.dataset.mf){ memFilter = t.dataset.mf; return renderMem(); }
   if(t.dataset.copy){ return copy(t.dataset.copy, t); }
+  if(t.dataset.edit){ return openEditor(t.dataset.edit); }
+  if(t.dataset.add){ return openEditor(null, Number(t.dataset.add)); }
+  if(t.dataset.restore){ try{ await removeItem(t.dataset.restore); }catch(err){ setSync("되살리기 실패. 다시 시도하세요."); } return renderPlan(); }
+  if(t.dataset.ed){ return editorAction(t.dataset.ed, t); }
+  if(t.dataset.sync !== undefined){ t.textContent = "새로고침 중…"; try{ await loadSharedAll(); }catch(err){ setSync("불러오기 실패"); } renderAll(); return; }
   if(t.dataset.quick){ quickSpot = t.dataset.quick; $("#quickFile").value = ""; return $("#quickFile").click(); }
   if(t.dataset.lb){
     const p = photos.find(x => x.id === lbId); const act = t.dataset.lb;
@@ -1244,7 +1427,11 @@ document.addEventListener("click", async e => {
   }
 });
 document.addEventListener("error", e => { const im = e.target; if(im && im.tagName === "IMG" && im.closest){ const f = im.closest(".ref"); if(f) f.hidden = true; } }, true);
-document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("#lb").hidden){ $("#lb").hidden = true; lbId = null; } });
+document.addEventListener("keydown", e => {
+  if(e.key !== "Escape") return;
+  if(!$("#sheet").hidden){ $("#sheet").hidden = true; return; }
+  if(!$("#lb").hidden){ $("#lb").hidden = true; lbId = null; }
+});
 
 let quickSpot = "";
 $("#quickFile").addEventListener("change", async e => {
@@ -1268,6 +1455,7 @@ document.addEventListener("change", async e => {
 });
 document.addEventListener("input", e => {
   const t = e.target;
+  if(t.id === "i-name"){ myName = t.value.trim(); lsSet("hk-name", myName); return; }
   const map = {"i-outflight":"outFlight","i-backflight":"backFlight","i-checkin":"checkin","i-checkout":"checkout","i-resv":"resv","i-memo":"memo","c-rate":"rate"};
   if(map[t.id]){ state[map[t.id]] = t.value; saveState(); }
   if(t.id === "c-yen" || t.id === "c-rate") calc();
@@ -1283,6 +1471,167 @@ document.addEventListener("drop", async e => {
 });
 
 /* =========================================================
+   일정 편집기
+   ========================================================= */
+let edId = null, edDay = 1, edDelArm = false;
+function canUpload(){ return photoMode === "shared" || photoMode === "cloud" || photoMode === "local"; }
+function openEditor(id, day){
+  edDelArm = false;
+  const it = id ? itemById(id) : null;
+  edId = id; edDay = it ? it.day : (day || curDay);
+  const isBase = id && BASE_IDS.has(id);
+  const v = it || {type:"sight", t:"", title:"", ja:"", dur:"", cost:"", costNote:"", desc:"", how:[], note:""};
+  const sh = $("#sheet");
+  sh.innerHTML = `<form class="sheet-in" id="edForm">
+    <div class="sheet-head"><h3>${id ? "일정 수정" : edDay + "일차 일정 추가"}</h3><button type="button" class="x2" data-ed="cancel">닫기</button></div>
+    <div class="upl-row">
+      <label class="f">시간<input class="inp" type="time" id="e-time" value="${esc(itemTime(v) || "")}"></label>
+      <label class="f">종류<select class="inp" id="e-type">${Object.entries(TYPE).map(([k,tp]) => `<option value="${k}" ${k===v.type?"selected":""}>${tp.k} ${tp.n}</option>`).join("")}</select></label>
+    </div>
+    ${!isBase ? `<label class="f">며칠째<select class="inp" id="e-day">${DAYS.map(d => `<option value="${d.n}" ${d.n===edDay?"selected":""}>${d.n}일차</option>`).join("")}</select></label>` : ""}
+    <label class="f">이름<input class="inp" id="e-title" maxlength="60" value="${esc(v.title)}" placeholder="예) 니카 위스키 간판 앞에서 사진"></label>
+    <label class="f">일본어 이름 또는 지도 검색어<input class="inp" id="e-ja" maxlength="80" value="${esc(v.ja || "")}" placeholder="예) すすきの ニッカ看板"></label>
+    <div class="upl-row">
+      <label class="f">소요 시간<input class="inp" id="e-dur" maxlength="30" value="${esc(v.dur || "")}" placeholder="예) 약 30분"></label>
+      <label class="f">1인 예상 비용(엔)<input class="inp" id="e-cost" inputmode="numeric" value="${esc(v.cost ?? "")}" placeholder="예) 1500"></label>
+    </div>
+    <label class="f">설명<textarea class="inp" id="e-desc" rows="3" maxlength="600">${esc(v.desc || "")}</textarea></label>
+    <label class="f">가는 법 (한 줄에 한 단계)<textarea class="inp" id="e-how" rows="3" maxlength="800">${esc((v.how || []).join("\n"))}</textarea></label>
+    <label class="f">메모 (둘이 같이 보는 메모)<textarea class="inp" id="e-note" rows="2" maxlength="300" placeholder="예) 여기서 단체 사진 꼭 찍기">${esc(v.note || "")}</textarea></label>
+    <div class="msg" id="edMsg" aria-live="polite"></div>
+    <div class="sheet-acts">
+      <div>
+        ${id ? `<button type="button" class="btn ${edDelArm ? "shu" : ""}" data-ed="del">${isBase ? "이 일정 숨기기" : "삭제"}</button>` : ""}
+        ${isBase && OV[id] && !OV[id].deleted ? `<button type="button" class="btn" data-ed="reset">원래 일정으로</button>` : ""}
+      </div>
+      <div><button type="button" class="btn" data-ed="cancel">취소</button> <button type="button" class="btn primary" data-ed="save">저장</button></div>
+    </div>
+  </form>`;
+  sh.hidden = false;
+  setTimeout(() => { const f = $("#e-title"); if(f && !id) f.focus(); }, 30);
+}
+async function editorAction(act, btn){
+  const sh = $("#sheet"), msg = $("#edMsg");
+  if(act === "cancel"){ sh.hidden = true; return; }
+  const isBase = edId && BASE_IDS.has(edId);
+  try{
+    if(act === "reset"){ await removeItem(edId); sh.hidden = true; return renderAll(); }
+    if(act === "del"){
+      if(!edDelArm){ edDelArm = true; btn.classList.add("shu"); btn.textContent = "한 번 더 누르면 " + (isBase ? "숨겨요" : "삭제돼요"); return; }
+      if(isBase) await saveItem(edId, edDay, (OV[edId] && OV[edId].data) || {}, true);
+      else await removeItem(edId);
+      sh.hidden = true; return renderAll();
+    }
+    if(act === "save"){
+      const title = $("#e-title").value.trim();
+      if(!title){ msg.textContent = "이름을 입력하세요."; $("#e-title").focus(); return; }
+      const base = isBase ? DAYS.flatMap(d => d.items).find(b => b.id === edId) : null;
+      const cur = edId ? itemById(edId) : null;
+      const t = $("#e-time").value;
+      const costRaw = $("#e-cost").value.replace(/[^0-9]/g, "");
+      const data = {
+        type: $("#e-type").value, title,
+        ja: $("#e-ja").value.trim(), dur: $("#e-dur").value.trim(),
+        desc: $("#e-desc").value.trim(),
+        how: $("#e-how").value.split("\n").map(x => x.trim()).filter(Boolean),
+        note: $("#e-note").value.trim()
+      };
+      if(costRaw !== "" && Number(costRaw) !== Number(cur && cur.cost)){ data.cost = Number(costRaw); data.costNote = ""; }
+      else if(costRaw === "" && cur && cur.cost){ data.cost = 0; data.costNote = ""; }
+      const baseTime = base ? itemTime({...base, _tFixed:false}) : "";
+      if(!isBase || (t && t !== baseTime)) data.t = t;
+      data.map = (base && data.ja === base.ja && base.map) ? base.map : (data.ja || title);
+      if(!isBase) data.created = (OV[edId] && OV[edId].data.created) || Date.now();
+      const day = isBase ? edDay : Number(($("#e-day") || {}).value || edDay);
+      btn.textContent = "저장 중…";
+      await saveItem(edId || ("c-" + uid()), day, data, false);
+      sh.hidden = true;
+      if(!isBase && day !== curDay){ curDay = day; lsSet("hk-day", curDay); }
+      return renderAll();
+    }
+  }catch(err){
+    console.warn(err);
+    if(msg) msg.textContent = "저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도하세요.";
+    if(act === "save") btn.textContent = "저장";
+  }
+}
+
+/* =========================================================
+   공유 모드 입장 화면
+   ========================================================= */
+function showGate(err){
+  const g = $("#gate");
+  g.innerHTML = `<form class="gate-in" id="gateForm">
+    <div class="eyebrow" style="color:var(--grass)">札幌・小樽・美瑛</div>
+    <h2>홋카이도 여행 수첩</h2>
+    <p>함께 가는 사람만 들어올 수 있어요. 여행 암호와 이름을 입력하세요.</p>
+    <label class="f">이름<input class="inp" id="g-name" maxlength="20" value="${esc(myName)}" placeholder="예) 아현" autocomplete="nickname"></label>
+    <label class="f">여행 암호<input class="inp" id="g-code" type="password" autocomplete="current-password"></label>
+    <div class="msg">${esc(err || "")}</div>
+    <button class="btn primary" type="submit" id="g-go">들어가기</button>
+  </form>`;
+  g.hidden = false;
+  $("#gateForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const name = $("#g-name").value.trim(), code = $("#g-code").value;
+    if(!name || !code){ return showGate("이름과 여행 암호를 모두 입력하세요."); }
+    $("#g-go").textContent = "확인 중…";
+    const { data, error } = await sb.rpc("join_trip", {p_code: code, p_name: name});
+    if(error){ console.warn(error); return showGate("연결하지 못했어요. 인터넷 연결을 확인하세요."); }
+    if(!data){ return showGate("여행 암호가 맞지 않아요."); }
+    myName = name; lsSet("hk-name", myName);
+    g.hidden = true;
+    await enterShared();
+  });
+}
+
+function loadScript(src){
+  return new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = src; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+}
+async function initShared(){
+  const cfg = window.TRIP_CONFIG || {};
+  if(!cfg.supabaseUrl || !cfg.supabaseAnonKey) return false;
+  try{
+    if(!window.supabase) await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js");
+    sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {auth:{persistSession:true, autoRefreshToken:true, storageKey:"hk-auth"}});
+    let { data: { session } } = await sb.auth.getSession();
+    if(!session){
+      const r = await sb.auth.signInAnonymously();
+      if(r.error) throw r.error;
+    }
+    const { data: member, error } = await sb.rpc("is_member");
+    if(error) throw error;
+    mode = "shared"; photoMode = "shared";
+    if(!member){ showGate(""); return true; }
+    await enterShared();
+    return true;
+  }catch(e){
+    console.warn(e);
+    setSync("공유 저장소에 연결하지 못했어요. 이 기기에만 저장돼요.");
+    mode = "local"; photoMode = idb ? "local" : "none"; sb = null;
+    return false;
+  }
+}
+let reloadTimer = null;
+function scheduleReload(){
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(async () => { try{ await loadSharedAll(); renderAll(); if(lbId) renderLB(); }catch(e){ console.warn(e); } }, 700);
+}
+async function enterShared(){
+  try{ await loadSharedAll(); }catch(e){ console.warn(e); setSync("불러오기 실패. 새로고침해 보세요."); }
+  renderAll();
+  try{
+    sb.channel("trip")
+      .on("postgres_changes", {event:"*", schema:"public", table:"items"}, scheduleReload)
+      .on("postgres_changes", {event:"*", schema:"public", table:"kv"}, scheduleReload)
+      .on("postgres_changes", {event:"*", schema:"public", table:"photos"}, scheduleReload)
+      .subscribe();
+  }catch(e){}
+  setInterval(() => { if(document.visibilityState === "visible") scheduleReload(); }, 45000);
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") scheduleReload(); });
+}
+
+/* =========================================================
    시작
    ========================================================= */
 async function initLocal(){
@@ -1296,16 +1645,22 @@ async function initCloud(){
   try{ [db, assets, downloads] = await Promise.all([c.use("db"), c.use("assets"), c.use("downloads")]); }catch(e){ return false; }
   if(!db) return false;
   cloud = {db, assets, downloads};
+  mode = "claude";
   photoMode = assets ? "cloud" : "cloud-read";
   db.collection("photos").orderBy("takenAt", "asc").onSnapshot(snap => {
     photos = snap.docs.map(d => { const v = d.data(); return {...v, id:d.id, url:"/_blob/" + v.asset}; });
     renderAll(); if(lbId) renderLB();
+  }, () => {});
+  db.collection("items").onSnapshot(snap => {
+    const ov = {}; snap.docs.forEach(d => ov[d.id] = d.data());
+    OV = ov; renderAll();
   }, () => {});
   db.doc("trip/state").onSnapshot(snap => {
     if(!snap.exists) return;
     const remote = snap.data();
     if(JSON.stringify(remote) === JSON.stringify(state)) return;
     state = applyBooking(Object.assign({}, state, JSON.parse(JSON.stringify(remote))));
+    lastFlat = flatState(state);
     lsSet("hk-state", state);
     const a = document.activeElement; if(a && a.classList && a.classList.contains("inp")) return;
     renderAll();
@@ -1317,8 +1672,9 @@ async function initCloud(){
   if(!DAYS.some(d => d.n === curDay)) curDay = 1;
   const hash = (location.hash || "").slice(1);
   if(["plan","food","mem","info"].includes(hash)) view = hash;
-  await initLocal();   // 먼저 로컬로 즉시 그림
+  await initLocal();   // 먼저 이 기기 데이터로 바로 그림
   show(view);
+  if(window.TRIP_CONFIG && window.TRIP_CONFIG.supabaseUrl){ await initShared(); renderAll(); return; }
   const ok = await initCloud();
   if(ok) renderAll();
 })();
