@@ -152,6 +152,15 @@ a{color:var(--skyc)}
 .card h3{margin:0;font-family:var(--hand);font-weight:700;font-size:22px;line-height:1.2;text-wrap:balance}
 .card .ja{font-family:var(--jp);font-size:12.5px;color:var(--ink-faint)}
 .tag{flex:none;font-family:var(--hand);font-weight:700;font-size:14px;padding:0 9px;background:var(--sun);color:#5A4210;border-radius:999px;white-space:nowrap;transform:rotate(3deg);margin-top:2px}
+.tag.warn{background:var(--tomato);color:#fff;transform:none}
+.chip.fl{border:0;cursor:pointer;color:var(--skyc);background:var(--skyc-soft);font-family:var(--sans)}
+.cover{display:block;width:100%;margin-top:10px;padding:0;border:0;border-radius:14px 10px 16px 8px;overflow:hidden;position:relative;background:var(--paper-2);aspect-ratio:16/10;max-width:100%}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.cover span{position:absolute;right:8px;bottom:8px;font-family:var(--hand);font-weight:700;font-size:14px;background:rgba(255,253,246,.9);color:#4A443A;padding:0 10px;border-radius:999px}
+.links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:10px;font-size:13px}
+.links span{font-family:var(--hand);font-weight:700;font-size:15px;color:var(--ink-faint)}
+.lk{color:var(--skyc);text-decoration:none;border-bottom:1.5px dotted currentColor;line-height:1.3}
+.lk:hover{color:var(--grass)}
 .meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .meta span b{color:var(--ink);font-weight:700}
 .desc{margin:8px 0 0;font-size:14.5px}
@@ -356,9 +365,14 @@ const DAYS = [
   n:1, kan:"壱", title:"삿포로 도착, 맥주로 여는 첫날", jp:"一日目 ・ 札幌",
   summary:"공항 라멘으로 점심을 먹고 호텔(오도리 니시8초메)에 짐을 둡니다. 오도리 공원을 따라 동쪽 TV타워까지 걷고, 지하철로 맥주박물관에 갔다가 팩토리 → 타누키코지 → 스스키노 순으로 남쪽으로 내려옵니다. 동선이 한 방향이라 되돌아가는 구간이 없습니다.",
   items:[
-    {id:"d1-icn", t:"08:00", type:"fly", title:"인천공항 출발", ja:"仁川国際空港 → 新千歳空港",
-     dur:"비행 약 2시간 50분", desc:"항공편 시간에 맞춰 아래 시간은 앞뒤로 조정하세요. 이 일정은 정오 무렵 도착하는 오전 비행 기준입니다.",
-     tips:"<b>출발 전 체크</b> Visit Japan Web(입국·세관 QR) 등록, 엔화 현금 조금(징기스칸집·시장은 현금만 받는 곳이 있음), 트래블카드/교통카드(Suica·Kitaca 겸용), eSIM 또는 포켓와이파이."},
+    {id:"d1-icn-in", t:"07:00", type:"move", title:"인천공항 도착 · 체크인 (출발 2시간 전)", ja:"仁川国際空港",
+     dur:"체크인·보안검색·출국심사 약 1~1.5시간",
+     desc:"국제선은 비행기 출발 2시간 전까지 공항에 도착해야 해요. 집에서 공항까지 걸리는 시간(공항철도·리무진 버스)은 따로 더해서 출발하세요.",
+     how:["전자항공권에서 제1터미널/제2터미널인지 먼저 확인","3층 출국장 → 항공사 체크인 카운터(또는 셀프 체크인 키오스크) → 수하물 위탁","보안검색 → 출국심사(자동출입국 심사대) → 탑승구로 이동. 탑승은 출발 30~40분 전에 시작해요"],
+     tips:"<b>출발 전 체크</b> Visit Japan Web(입국·세관 QR) 등록, 엔화 현금 조금(징기스칸집·시장은 현금만 받는 곳이 있음), 트래블카드/교통카드(Suica·Kitaca 겸용), eSIM 또는 포켓와이파이.",
+     map:"인천국제공항"},
+    {id:"d1-icn", t:"09:00", type:"fly", title:"인천 → 신치토세 비행", ja:"仁川国際空港 → 新千歳空港",
+     dur:"비행 약 2시간 50분", desc:"'정보' 탭에 항공편 출발 시간을 넣으면 공항 도착(2시간 전)부터 호텔 도착까지 1일차 오전 시간이 자동으로 맞춰져요."},
     {id:"d1-cts", t:"12:00", type:"move", title:"신치토세 공항 도착 · 입국", ja:"新千歳空港 国際線ターミナル",
      dur:"입국·수하물 40~60분",
      how:["입국심사 → 수하물 → 세관(Visit Japan Web QR 제시)","도착 로비에서 '国内線(Domestic)' 표지판을 따라 연결통로로 이동(도보 약 10분). 연결통로에 로이스 초콜릿 월드, 도라에몽 공원 등이 있어요"],
@@ -537,18 +551,61 @@ const DAYS = [
      map:"大丸札幌店"},
     {id:"d4-jr", t:"11:40", type:"move", title:"JR 쾌속 에어포트 → 신치토세", ja:"快速エアポート 札幌 → 新千歳空港",
      dur:"약 37분", cost:1230, costNote:"1,230엔",
-     how:["삿포로역 5·6번 홈 등 '快速エアポート 新千歳空港行き' 탑승(전광판 확인)","종점 '新千歳空港'역 하차 → 국내선 터미널 → 연결통로 따라 국제선 터미널로(도보 약 10분)"],
+     how:["삿포로역 전광판에서 '快速エアポート 新千歳空港' 열차와 홈 번호 확인 후 탑승","종점 '新千歳空港'역 하차(약 37분)","역에서 국제선 터미널까지 도보 10분이 더 걸려요. 공항 도착 목표 시간보다 50분 먼저 삿포로역에서 출발하는 열차를 타세요"],
      map:"札幌駅"},
-    {id:"d4-cts", t:"12:30", type:"shop", title:"공항 마지막 쇼핑 · 출국", ja:"新千歳空港",
-     dur:"출발 2시간 전 도착", costNote:"쇼핑 자유",
-     desc:"국내선 터미널 쪽 기념품 거리가 훨씬 큽니다. 국제선 출국 수속 전에 국내선에서 먼저 쇼핑하고 넘어가세요.",
-     tips:"액체류(잼·소스·술)는 위탁 수하물에 넣거나 출국장 면세점에서 사세요. 로이스 초콜릿 월드는 연결통로에 있어요.",
-     map:"新千歳空港 国内線ターミナル"},
-    {id:"d4-fly", type:"fly", title:"신치토세 → 인천", ja:"新千歳空港 → 仁川国際空港", dur:"비행 약 3시간",
+    {id:"d4-cts", t:"12:30", type:"move", title:"신치토세 공항 도착 · 체크인 (출발 2시간 전)", ja:"新千歳空港 国際線ターミナル",
+     dur:"체크인·출국심사 약 1시간", costNote:"남는 시간 쇼핑",
+     desc:"비행기 출발 2시간 전까지 국제선 터미널에 도착하는 시간으로 잡았어요. 도착하면 체크인과 수하물 위탁부터 하고, 남는 시간에 연결통로(로이스 초콜릿 월드 등)와 출국장 면세점을 둘러보세요.",
+     how:["JR 新千歳空港역(국내선 터미널 지하) 하차 → 'International Terminal/国際線' 표지판 따라 연결통로로 도보 약 10분","국제선 터미널 2층 출발 로비 → 항공사 체크인 카운터 → 수하물 위탁","보안검색 → 출국심사 → 탑승구"],
+     tips:"<b>더 쇼핑하고 싶다면</b> 국내선 터미널 2층 기념품 거리가 훨씬 커요. 거기까지 보려면 기차를 한 대 일찍(30분~1시간) 타세요. 액체류(잼·소스·술)는 위탁 수하물에 넣거나 출국장 면세점에서 사세요.",
+     map:"新千歳空港 国際線ターミナル"},
+    {id:"d4-fly", t:"14:30", type:"fly", title:"신치토세 → 인천", ja:"新千歳空港 → 仁川国際空港", dur:"비행 약 3시간",
      desc:"다음 여행을 기약하며 さようなら."}
   ]
 }
 ];
+
+/* 항공편 기준 상대 시간(분): 공항에는 출발 2시간 전 도착 */
+const REL = {
+  "d1-icn-in":["out",-120], "d1-icn":["out",0], "d1-cts":["out",170], "d1-lunch":["out",220], "d1-jr":["out",275], "d1-hotel":["out",335],
+  "d4-nijo":["back",-390], "d4-out":["back",-300], "d4-souv":["back",-270], "d4-jr":["back",-170], "d4-cts":["back",-120], "d4-fly":["back",0]
+};
+
+/* 장소별 더 알아보기: kq = 한국어 검색어, wiki = 위키백과 검색어, web = 공식 사이트 */
+const LINKS = {
+  "d1-icn-in":{kq:"인천공항 출국 절차", web:"https://www.airport.kr/"},
+  "d1-cts":{kq:"신치토세 공항 국제선", wiki:"신치토세 공항", web:"https://www.new-chitose-airport.jp/ko/"},
+  "d1-lunch":{kq:"신치토세 공항 라멘도장", web:"https://www.new-chitose-airport.jp/ko/"},
+  "d1-jr":{kq:"쾌속 에어포트 신치토세 삿포로", web:"https://www.jrhokkaido.co.jp/"},
+  "d1-hotel":{kq:"오디시스 삿포로 오도리 공원 호텔"},
+  "d1-odori":{kq:"삿포로 오도리 공원", wiki:"오도리 공원", web:"https://www.sapporo.travel/"},
+  "d1-clock":{kq:"삿포로 시계탑", wiki:"삿포로 시계탑"},
+  "d1-beer":{kq:"삿포로 맥주박물관", wiki:"삿포로 맥주 박물관", web:"https://www.sapporobeer.jp/brewery/s_museum/"},
+  "d1-factory":{kq:"삿포로 팩토리", wiki:"삿포로 팩토리"},
+  "d1-tanuki":{kq:"삿포로 타누키코지 돈키호테", wiki:"다누키코지 상점가"},
+  "d1-dinner":{kq:"삿포로 다루마 징기스칸", wiki:"징기스칸 요리"},
+  "d1-night":{kq:"삿포로 TV타워 야경", wiki:"삿포로 TV 탑", web:"https://www.tv-tower.co.jp/"},
+  "d2-jr":{kq:"삿포로 오타루 JR 바다 창가", web:"https://www.jrhokkaido.co.jp/"},
+  "d2-market":{kq:"오타루 삼각시장 카이센동"},
+  "d2-canal":{kq:"오타루 운하", wiki:"오타루 운하", web:"https://otaru.gr.jp/"},
+  "d2-beer":{kq:"오타루 창고 No.1 오타루 비어"},
+  "d2-sakai":{kq:"오타루 사카이마치 거리 기타이치 글라스", wiki:"오타루시"},
+  "d2-letao":{kq:"르타오 본점 오타루", web:"https://www.letao.jp/"},
+  "d2-music":{kq:"오타루 오르골당 본관 증기시계"},
+  "d2-back":{kq:"남오타루역"},
+  "d2-dinner":{kq:"삿포로 스프카레 가라쿠", wiki:"수프 카레"},
+  "d3-meet":{kq:"잇쇼니투어 비에이 버스센터마에 2번출구"},
+  "d3-patch":{kq:"비에이 패치워크 로드", wiki:"비에이정"},
+  "d3-biei":{kq:"비에이역 카레우동", wiki:"비에이역"},
+  "d3-aoiike":{kq:"비에이 청의 호수", wiki:"청의 호수"},
+  "d3-shirahige":{kq:"흰수염 폭포 시로가네", wiki:"시로가네 온천"},
+  "d3-takushin":{kq:"비에이 탁신관 자작나무"},
+  "d3-shikisai":{kq:"사계채의 언덕 비에이"},
+  "d3-dinner":{kq:"스스키노 이자카야 추천"},
+  "d4-nijo":{kq:"삿포로 니조시장 카이센동"},
+  "d4-souv":{kq:"삿포로 다이마루 기념품", web:"https://www.daimaru.co.jp/sapporo/"},
+  "d4-cts":{kq:"신치토세 공항 국제선 출국 쇼핑", web:"https://www.new-chitose-airport.jp/ko/"}
+};
 
 const FOODS = [
   {k:"麺", id:"f-ramen", name:"미소라멘", ja:"味噌ラーメン", where:"1일차 공항 라멘도장 · 스스키노 라멘요코초", price:"1,100~1,600엔", note:"삿포로가 원조인 된장 라멘. 버터·옥수수 토핑이 홋카이도식."},
@@ -585,6 +642,17 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const yen = n => n.toLocaleString("ko-KR") + "엔";
 const mapUrl = q => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
 const dirUrl = q => "https://www.google.com/maps/dir/?api=1&travelmode=transit&destination=" + encodeURIComponent(q);
+const imgUrl = q => "https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(q);
+const wikiUrl = q => "https://ko.wikipedia.org/w/index.php?search=" + encodeURIComponent(q);
+const blogUrl = q => "https://search.naver.com/search.naver?where=blog&query=" + encodeURIComponent(q);
+const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(t||""); return m ? (+m[1])*60 + (+m[2]) : null; };
+const fmtMin = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0"); };
+function itemTime(i){
+  const r = REL[i.id]; if(!r) return i.t || "";
+  const base = toMin(r[0] === "out" ? state.outDep : state.backDep);
+  return base == null ? (i.t || "") : fmtMin(base + r[1]);
+}
+function tooEarly(i){ const r = REL[i.id]; if(!r || r[0] !== "back") return false; const m = toMin(itemTime(i)); return m != null && m < 7*60; }
 const allItems = () => DAYS.flatMap(d => d.items.map(i => ({...i, day:d.n})));
 const itemById = id => allItems().find(i => i.id === id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -595,7 +663,7 @@ function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e)
 /* =========================================================
    상태 (체크, 날짜, 숙소 메모) — 클라우드 가능 시 db, 아니면 localStorage
    ========================================================= */
-let state = Object.assign({done:{}, ate:{}, start:"", checkin:"15:00", checkout:"11:00", resv:"", memo:"", rate:"9.4"}, lsGet("hk-state", {}));
+let state = Object.assign({done:{}, ate:{}, start:"", checkin:"15:00", checkout:"11:00", resv:"", memo:"", rate:"9.4", outDep:"09:00", backDep:"14:30", outFlight:"", backFlight:""}, lsGet("hk-state", {}));
 let cloud = {db:null, assets:null, downloads:null};
 let saveTimer = null;
 function saveState(){
@@ -743,7 +811,9 @@ function renderPlan(){
         <span class="chip">1인 예상 경비 <b>약 ${yen(cost)}</b></span>
         <span class="chip">완료 <b>${doneN}/${day.items.length}</b></span>
         <span class="chip">사진 <b>${nPh}장</b></span>
-        ${day.items.some(i=>i.opt) ? `<span class="chip shu">추천 추가 일정 포함</span>` : ""}
+        ${day.n===1 ? `<button class="chip fl" data-goinfo>✈ 인천 ${esc(state.outDep)} 출발 기준 · 공항 도착 ${esc(fmtMin(toMin(state.outDep)-120))} · 변경</button>` : ""}
+        ${day.n===4 ? `<button class="chip fl" data-goinfo>✈ 신치토세 ${esc(state.backDep)} 출발 기준 · 공항 도착 ${esc(fmtMin(toMin(state.backDep)-120))} · 변경</button>` : ""}
+        ${day.n===1 && toMin(itemTime(itemById("d1-hotel"))) > 15*60+40 ? `<span class="chip shu">비행기가 늦어 오후가 빠듯해요. '추천 추가' 일정은 빼세요</span>` : (day.items.some(i=>i.opt) ? `<span class="chip shu">추천 추가 일정 포함</span>` : "")}
       </div>
     </div>
     <ol class="tl">
@@ -751,24 +821,34 @@ function renderPlan(){
     </ol>`;
 }
 
+function linkRow(i){
+  const L = LINKS[i.id]; if(!L) return "";
+  const a = [`<a class="lk" href="${imgUrl(i.ja.split(/[（(/・]/)[0].trim() || L.kq)}" target="_blank" rel="noopener">사진 보기</a>`];
+  if(L.wiki) a.push(`<a class="lk" href="${wikiUrl(L.wiki)}" target="_blank" rel="noopener">설명 (위키백과)</a>`);
+  a.push(`<a class="lk" href="${blogUrl(L.kq)}" target="_blank" rel="noopener">여행 후기</a>`);
+  if(L.web) a.push(`<a class="lk" href="${L.web}" target="_blank" rel="noopener">공식 사이트</a>`);
+  return `<div class="links"><span>더 알아보기</span>${a.join("")}</div>`;
+}
 function stopHTML(i){
   const ty = TYPE[i.type] || TYPE.sight;
   const done = !!state.done[i.id];
   const ph = photos.filter(p => p.spot === i.id);
   const costTxt = i.costNote || (i.cost ? yen(i.cost) : "");
   return `<li class="st ${i.type==="move"||i.type==="fly" ? "move" : ""} ${done ? "done" : ""}">
-    <div class="st-time">${esc(i.t || "")}</div>
+    <div class="st-time">${esc(itemTime(i))}</div>
     <div class="st-ic t-${i.type}" title="${ty.n}">${ty.k}</div>
     <div class="card">
       <div class="card-top">
         <div><h3>${esc(i.title)}</h3><div class="ja">${esc(i.ja || "")}</div></div>
-        ${i.opt ? `<span class="tag">추천 추가</span>` : ""}
+        ${tooEarly(i) ? `<span class="tag warn">시간 부족 · 생략</span>` : (i.opt ? `<span class="tag">추천 추가</span>` : "")}
       </div>
+      ${ph.length ? `<button class="cover" data-open="${ph[0].id}"><img src="${esc(ph[0].url)}" alt="${esc(ph[0].caption||i.title)}" loading="lazy"><span>내 사진 ${ph.length}장</span></button>` : ""}
       ${(i.dur || costTxt) ? `<div class="meta">${i.dur ? `<span>⏱ ${esc(i.dur)}</span>` : ""}${costTxt ? `<span>¥ <b>${esc(costTxt)}</b></span>` : ""}</div>` : ""}
       ${i.desc ? `<p class="desc">${esc(i.desc)}</p>` : ""}
       ${i.tips ? `<div class="tips">${i.tips}</div>` : ""}
       ${i.how ? `<details class="how" ${i.type==="move" ? "open" : ""}><summary>가는 법</summary><ol class="steps">${i.how.map(s => `<li><span>${esc(s)}</span></li>`).join("")}</ol></details>` : ""}
-      ${ph.length ? `<div class="thumbs">${ph.slice(0,8).map(p => `<img src="${esc(p.url)}" alt="${esc(p.caption||i.title)}" data-open="${p.id}" loading="lazy">`).join("")}</div>` : ""}
+      ${linkRow(i)}
+      ${ph.length > 1 ? `<div class="thumbs">${ph.slice(1,9).map(p => `<img src="${esc(p.url)}" alt="${esc(p.caption||i.title)}" data-open="${p.id}" loading="lazy">`).join("")}</div>` : ""}
       <div class="acts">
         ${i.map ? `<a class="btn" href="${mapUrl(i.map)}" target="_blank" rel="noopener">지도</a>
         <a class="btn" href="${dirUrl(i.map)}" target="_blank" rel="noopener">여기까지 길찾기</a>` : ""}
@@ -918,6 +998,25 @@ function renderInfo(){
       <div class="tips" style="margin-top:12px"><b>택시 탈 때</b> 위 일본어 주소를 기사에게 보여주세요. 체크인·체크아웃 시간과 예약 번호는 바우처를 보고 직접 고쳐 적으면 이 기기에 저장돼요.</div>
     </div>
 
+    <div class="sec-title"><h2>항공편</h2><span class="jp">フライト</span></div>
+    <div class="info">
+      <div class="upl-row">
+        <label class="f">가는 편 인천 출발 시간
+          <input class="inp" type="time" id="i-outdep" value="${esc(state.outDep)}">
+        </label>
+        <label class="f">가는 편 편명
+          <input class="inp" id="i-outflight" value="${esc(state.outFlight)}" placeholder="예) KE765">
+        </label>
+        <label class="f">오는 편 신치토세 출발 시간
+          <input class="inp" type="time" id="i-backdep" value="${esc(state.backDep)}">
+        </label>
+        <label class="f">오는 편 편명
+          <input class="inp" id="i-backflight" value="${esc(state.backFlight)}" placeholder="예) KE766">
+        </label>
+      </div>
+      <div class="tips"><b>공항은 출발 2시간 전 도착</b> 출발 시간을 바꾸면 1일차 인천공항 도착 → 호텔 도착까지, 4일차 니조시장 → 신치토세 공항 도착까지 시간이 자동으로 다시 계산돼요. 지금 기준: 인천공항 <b>${esc(fmtMin(toMin(state.outDep)-120))}</b> 도착, 신치토세 공항 <b>${esc(fmtMin(toMin(state.backDep)-120))}</b> 도착.</div>
+    </div>
+
     <div class="sec-title"><h2>여행 날짜</h2><span class="jp">日程</span></div>
     <div class="info">
       <label class="f">출발일(1일차)
@@ -1028,6 +1127,7 @@ async function doUpload(files, day, spot, cap, progEl, msgEl){
 document.addEventListener("click", async e => {
   const t = e.target.closest("button, img[data-open]"); if(!t) return;
   if(t.classList.contains("tab")) return show(t.dataset.v);
+  if(t.dataset.goinfo !== undefined){ return show("info"); }
   if(t.dataset.day){ curDay = Number(t.dataset.day); lsSet("hk-day", curDay); return renderPlan(); }
   if(t.dataset.done){ state.done[t.dataset.done] = !state.done[t.dataset.done]; saveState(); return renderPlan(); }
   if(t.dataset.open){ return openLB(t.dataset.open); }
@@ -1071,11 +1171,12 @@ document.addEventListener("change", async e => {
     await doUpload(files, $("#upDay").value, $("#upSpot").value, $("#upCap").value.trim(), $("#upProg"), $("#upMsg"));
     return;
   }
+  if(t.id === "i-outdep" || t.id === "i-backdep"){ if(t.value){ state[t.id === "i-outdep" ? "outDep" : "backDep"] = t.value; saveState(); renderInfo(); } return; }
   if(t.id === "i-start"){ state.start = t.value; saveState(); renderHero(); return; }
 });
 document.addEventListener("input", e => {
   const t = e.target;
-  const map = {"i-checkin":"checkin","i-checkout":"checkout","i-resv":"resv","i-memo":"memo","c-rate":"rate"};
+  const map = {"i-outflight":"outFlight","i-backflight":"backFlight","i-checkin":"checkin","i-checkout":"checkout","i-resv":"resv","i-memo":"memo","c-rate":"rate"};
   if(map[t.id]){ state[map[t.id]] = t.value; saveState(); }
   if(t.id === "c-yen" || t.id === "c-rate") calc();
 });
