@@ -251,6 +251,20 @@ label.f{display:grid;gap:4px;font-size:12.5px;color:var(--ink-soft)}
 .lb-nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between}
 .x{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:4px 14px}
 
+/* 공유 앨범 */
+.chip.alb{text-decoration:none;color:#fff;background:var(--tomato);font-weight:700}
+.album-card{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+form.album-card{grid-template-columns:1fr}
+.album-body{display:grid;gap:8px;min-width:0}
+.album-body h3{margin:0;font-family:var(--hand);font-size:24px}
+.album-body p{margin:0;font-size:14px;color:var(--ink-soft)}
+.album-body .acts{margin-top:2px}
+.album-art{position:relative;width:74px;height:74px}
+.album-art i{position:absolute;inset:6px;border-radius:3px;background:#FFFDF8;box-shadow:0 2px 6px rgba(0,0,0,.2);border:4px solid #FFFDF8}
+.album-art i:nth-child(1){transform:rotate(-12deg) translate(-5px,2px);background:var(--skyc)}
+.album-art i:nth-child(2){transform:rotate(9deg) translate(5px,-2px);background:var(--grass)}
+.album-art i:nth-child(3){transform:rotate(-2deg);background:var(--sun)}
+
 /* 일정 편집 */
 .add-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:4px 0 0 92px}
 @media (max-width:420px){.add-row{margin-left:0}}
@@ -768,7 +782,7 @@ function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e)
    - claude : claude.ai 아티팩트 db/assets
    - local  : 이 기기 브라우저(IndexedDB/localStorage)
    ========================================================= */
-const STATE_DEFAULTS = {done:{}, ate:{}, start:"", checkin:"15:00", checkout:"11:00", resv:"", memo:"", rate:"9.4", outDep:"10:10", backDep:"12:15", outFlight:"", backFlight:""};
+const STATE_DEFAULTS = {done:{}, ate:{}, start:"", checkin:"15:00", checkout:"11:00", resv:"", memo:"", rate:"9.4", outDep:"10:10", backDep:"12:15", outFlight:"", backFlight:"", album:""};
 let state = Object.assign(JSON.parse(JSON.stringify(STATE_DEFAULTS)), lsGet("hk-state", {}));
 const FLIGHT_V = 2;
 function applyBooking(st){
@@ -786,6 +800,9 @@ let myName = lsGet("hk-name", "");
 let cloud = {db:null, assets:null, downloads:null};
 let sb = null;             // Supabase client
 let syncMsg = "";
+
+const albumUrl = () => (state.album || window.TRIP_ALBUM || "").trim();
+const validAlbum = u => /^https:\/\/(photos\.app\.goo\.gl|photos\.google\.com|goo\.gl\/photos|www\.icloud\.com\/sharedalbum|share\.icloud\.com)\//.test(u);
 
 /* 상태를 "done.d1-beer": true 같은 평평한 키로 바꿔 필드 단위로 저장(동시 수정 충돌 줄이기) */
 function flatState(st){
@@ -1049,7 +1066,7 @@ function renderPlan(){
       <div class="sumrow">
         <span class="chip">1인 예상 경비 <b>약 ${yen(cost)}</b></span>
         <span class="chip">완료 <b>${doneN}/${items.length}</b></span>
-        <span class="chip">사진 <b>${nPh}장</b></span>
+        ${albumUrl() ? `<a class="chip alb" href="${esc(albumUrl())}" target="_blank" rel="noopener">📷 우리 공유 앨범</a>` : `<span class="chip">사진 <b>${nPh}장</b></span>`}
         ${day.n===1 ? `<button class="chip fl" data-goinfo>✈ 인천 ${esc(state.outDep)} 출발 기준 · 공항 도착 ${esc(fmtMin(toMin(state.outDep)-120))} · 변경</button>` : ""}
         ${day.n===4 ? `<button class="chip fl" data-goinfo>✈ 신치토세 ${esc(state.backDep)} 출발 기준 · 공항 도착 ${esc(fmtMin(toMin(state.backDep)-120))} · 변경</button>` : ""}
         ${day.n===1 && itemById("d1-hotel") && toMin(itemTime(itemById("d1-hotel"))) > 16*60 ? `<span class="chip shu">비행기가 늦어 오후가 빠듯해요. '추천 추가' 일정은 빼세요</span>` : (items.some(i=>i.opt) ? `<span class="chip shu">추천 추가 일정 포함</span>` : "")}
@@ -1157,6 +1174,31 @@ function spotOptions(day){
   dayItems(Number(day)).forEach(i => opts.push(`<option value="${i.id}">${esc(i.title)}</option>`));
   return opts.join("");
 }
+function albumCard(){
+  const u = albumUrl();
+  if(u) return `<div class="album-card">
+    <div class="album-art" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="album-body">
+      <h3>우리 공유 앨범</h3>
+      <p>구글 포토 공유 앨범이에요. 둘 다 여기에 올리면 한 곳에 모여요. 원본 화질로 남아서 여행이 끝나도 추억 저장소가 돼요.</p>
+      <div class="acts"><a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener">앨범 열기</a><button class="btn" data-album-edit>링크 바꾸기</button></div>
+      <details class="how"><summary>사진 올리는 법</summary><ol class="steps">
+        <li><span>'앨범 열기'를 누르거나 구글 포토 앱 → 아래 '공유' 탭(또는 '컬렉션') → 이 앨범</span></li>
+        <li><span>오른쪽 위 사진 추가 아이콘 → 올릴 사진 선택 → '추가'</span></li>
+        <li><span>여러 장을 한꺼번에 골라도 돼요. 동행 휴대폰에도 바로 보여요</span></li>
+      </ol></details>
+    </div>
+  </div>`;
+  return `<form class="album-card" id="albumForm">
+    <div class="album-body">
+      <h3>우리 공유 앨범 연결</h3>
+      <p>구글 포토(또는 아이클라우드) 공유 앨범 링크를 한 번 붙여넣으면 이 기기에 저장돼요. 앨범 링크는 누구나 열 수 있어서 앱 코드에는 넣지 않았어요.</p>
+      <input class="inp" id="albumIn" inputmode="url" placeholder="https://photos.app.goo.gl/...">
+      <div class="msg" id="albumMsg"></div>
+      <div class="acts"><button class="btn primary" type="button" data-album-save>연결하기</button></div>
+    </div>
+  </form>`;
+}
 function renderMem(){
   const modeTxt = {
     shared:`<span class="dot ok"></span>여행 멤버 모두에게 공유돼요. 같이 가는 사람이 올린 사진도 여기 함께 쌓여요.`,
@@ -1171,6 +1213,9 @@ function renderMem(){
   const defDay = memFilter !== "all" ? memFilter : String(curDay);
   $("#v-mem").innerHTML = `
     <div class="sec-title"><h2>여행 추억 앨범</h2><span class="jp">思い出の写真</span></div>
+    ${albumCard()}
+    <div class="sec-title"><h2>앱 속 앨범</h2><span class="jp">アプリ</span></div>
+    <p class="lead">${mode === "shared" ? "앱 안에 일차·장소별로 정리해 두는 앨범이에요. 함께 가는 사람과 공유돼요." : "앱 안에 일차·장소별로 정리해 두는 앨범이에요. 이 앨범은 이 기기에만 저장되니, 같이 보는 사진은 위의 공유 앨범에 올리세요."}</p>
     ${canUp ? `<form class="upl" id="uplForm">
       <div class="upl-row">
         <label class="f">며칠째 사진인가요?
@@ -1261,6 +1306,7 @@ function renderInfo(){
     <div class="sec-title"><h2>함께 쓰기</h2><span class="jp">いっしょに</span></div>
     <div class="info">
       <div class="mode">${mode === "shared" ? `<span class="dot ok"></span>공유 모드: 일정 수정, 다녀옴 체크, 사진이 여행 멤버 모두에게 저장돼요.` : mode === "claude" ? `<span class="dot ok"></span>claude.ai 저장소에 저장돼요. 동행과 함께 쓰려면 GitHub Pages 주소로 여세요.` : `<span class="dot warn"></span>이 기기에만 저장돼요. 동행과 함께 쓰려면 GitHub Pages 주소로 여세요.`}</div>
+      <p class="mini" style="margin:8px 0 0">사진은 '추억' 탭의 공유 앨범(구글 포토)에 둘 다 올리면 한 곳에 모여요.${albumUrl() ? "" : " 앨범 링크는 추억 탭에서 연결하세요."}</p>
       <label class="f" style="margin-top:10px">내 이름 (수정·사진에 표시돼요)
         <input class="inp" id="i-name" maxlength="20" value="${esc(myName)}" placeholder="예) 민순">
       </label>
@@ -1402,6 +1448,12 @@ document.addEventListener("click", async e => {
   if(t.dataset.open){ return openLB(t.dataset.open); }
   if(t.dataset.mf){ memFilter = t.dataset.mf; return renderMem(); }
   if(t.dataset.copy){ return copy(t.dataset.copy, t); }
+  if(t.dataset.albumEdit !== undefined){ state.album = ""; window.TRIP_ALBUM = ""; saveState(); return renderMem(); }
+  if(t.dataset.albumSave !== undefined){
+    const u = ($("#albumIn").value || "").trim();
+    if(!validAlbum(u)){ $("#albumMsg").textContent = "구글 포토 또는 아이클라우드 공유 앨범 링크를 붙여넣어 주세요."; return; }
+    state.album = u; saveState(); return renderMem();
+  }
   if(t.dataset.edit){ return openEditor(t.dataset.edit); }
   if(t.dataset.add){ return openEditor(null, Number(t.dataset.add)); }
   if(t.dataset.restore){ try{ await removeItem(t.dataset.restore); }catch(err){ setSync("되살리기 실패. 다시 시도하세요."); } return renderPlan(); }
