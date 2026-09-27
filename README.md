@@ -9,17 +9,16 @@
 
 ## 동행과 함께 쓰기 (공유 모드)
 
-일정 수정, 다녀옴 체크, 사진이 두 사람 휴대폰에 실시간으로 공유됩니다. 무료 Supabase를 저장소로 쓰고, 앱은 GitHub Pages로 엽니다.
+일정 추가·수정·숨기기, 메모, 다녀옴 체크, 공유 앨범 링크가 두 사람 휴대폰에 똑같이 보여요(20초마다 자동 동기화). 사진은 구글 포토 공유 앨범에 모으고, 공유 데이터는 무료 Supabase에 저장합니다.
 
-1. **Supabase 프로젝트 만들기**: [supabase.com](https://supabase.com) 가입 → New project. 지역은 Northeast Asia(Seoul 또는 Tokyo), DB 비밀번호는 아무거나(앱에서는 안 씀).
-2. **익명 로그인 켜기**: Authentication → Sign In / Providers → *Allow anonymous sign-ins* 켜고 저장.
-3. **저장소 만들기**: SQL Editor → New query에 [`supabase/setup.sql`](supabase/setup.sql) 전체를 붙여넣고, 맨 위 `'여기에-여행-암호'`를 두 사람만 아는 암호로 바꾼 뒤 Run.
-4. **연결 정보 넣기**: Project Settings → API Keys에서 *Project URL*과 *anon public*(또는 *publishable*) 키를 복사해 [`config.js`](config.js)에 넣기. 둘 다 공개돼도 되는 값이에요. 여행 암호는 여기에 넣지 마세요.
-5. **GitHub Pages 켜기**: 저장소 Settings → Pages → Source: *Deploy from a branch*, Branch: `claude/hokkaido-trip-itinerary-app-6b35x3` / `(root)` → Save. 1~2분 뒤 https://ahjung-droid.github.io/app/ 에서 열려요.
-6. **휴대폰에서 열기**: 두 사람 모두 위 주소를 열고 이름과 여행 암호를 입력 → 공유 메뉴에서 *홈 화면에 추가*.
+1. **Supabase 프로젝트 만들기**: [supabase.com](https://supabase.com) → *Start your project* → *Continue with GitHub* → *New project* (이름 아무거나, DB 비밀번호는 *Generate*, 지역 Seoul/Tokyo) → 1~2분 대기.
+2. **SQL 붙여넣기**: 왼쪽 *SQL Editor* → *New query* → [`supabase/setup.sql`](supabase/setup.sql) 전체 붙여넣기 → `'여기에-여행-암호'`만 두 사람만 아는 암호로 바꾸기 → *Run*. 아래에 *Success*가 나오면 끝.
+3. **연결 정보 2개 전달**: 톱니바퀴(*Project Settings*) → *Data API*의 **Project URL**, *API Keys*의 **publishable**(또는 Legacy 탭의 **anon public**) 키를 복사해 [`config.js`](config.js)에 넣기. `secret`/`service_role` 키는 넣지 마세요.
+
+그다음 두 사람 모두 https://ahjung-droid.github.io/app/ 을 열고 이름과 여행 암호를 한 번 입력하면 돼요.
 
 참고
-- 무료 플랜 저장 용량은 1GB예요. 사진은 긴 변 2048px로 줄여 저장해서 약 2,000장까지 들어가요.
+- 여행 암호는 코드가 아니라 Supabase 안에만 있고, 서버 함수가 확인해요. 암호 없이는 데이터를 읽거나 쓸 수 없어요.
+- 암호를 바꾸려면 `setup.sql`의 암호 줄만 바꿔 다시 실행하세요. 앱이 새 암호를 물어봐요.
 - 무료 프로젝트는 1주일 넘게 사용이 없으면 일시정지돼요. 대시보드에서 *Restore*를 누르면 데이터 그대로 다시 켜져요. 여행 직전에 한 번 열어두세요.
-- 여행 암호를 바꾸려면 `setup.sql`의 암호 줄만 바꿔 다시 실행하세요. 이미 들어온 기기는 그대로 유지돼요.
 - `config.js`가 비어 있으면 이 기기 브라우저에만 저장하는 모드로 동작해요.
