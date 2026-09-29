@@ -255,6 +255,34 @@ label.f{display:grid;gap:4px;font-size:12.5px;color:var(--ink-soft)}
 .lb-nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between}
 .x{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:4px 14px}
 
+/* 일정 보기 방식: 장소 카드 넘기기 / 하루 전체 보기 */
+.viewbar{display:flex;justify-content:center;margin:14px 0 0}
+.viewbar-in{display:inline-flex;background:var(--paper-2);border-radius:999px;padding:3px;gap:2px}
+.viewbar button{border:0;background:transparent;border-radius:999px;padding:6px 14px;font-family:var(--title);font-size:14px;color:var(--ink-soft)}
+.viewbar button[aria-pressed="true"]{background:var(--card);color:var(--grass);box-shadow:0 1px 4px rgba(60,50,30,.18)}
+.strip{display:flex;gap:6px;overflow-x:auto;padding:12px 16px 4px;margin:0 -16px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.strip button{flex:none;display:flex;flex-direction:column;align-items:center;border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:5px 10px;min-width:64px;font-family:var(--sans);color:var(--ink-soft)}
+.strip button b{font-family:var(--title);font-weight:400;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.strip button span{font-size:11px;white-space:nowrap}
+.strip button.done{border-color:var(--grass-soft);background:var(--grass-soft)}
+.strip button.on{border-color:var(--tomato);box-shadow:0 0 0 2px var(--tomato-soft)}
+.car{display:grid;grid-auto-flow:column;grid-auto-columns:86%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:8px 7% 10px;margin:0 -16px;scrollbar-width:none;align-items:start;overscroll-behavior-x:contain}
+.car::-webkit-scrollbar{display:none}
+.slide{scroll-snap-align:center;min-width:0}
+.tl.one{margin:0}
+.tl.one::before{display:none}
+.tl.one .st{grid-template-columns:40px 1fr;grid-template-areas:"ic time" "card card";gap:8px 10px;padding:0}
+.tl.one .st-ic{grid-area:ic}
+.tl.one .st-time{grid-area:time;text-align:left;align-self:center;padding:0;font-size:20px;color:var(--ink)}
+.tl.one .card{grid-area:card}
+.car-nav{display:flex;justify-content:center;align-items:center;gap:16px;margin:2px 0 0}
+.car-nav button{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--grass);font-family:var(--title);font-size:20px;line-height:1}
+.car-nav button:disabled{opacity:.35}
+.car-nav span{font-family:var(--title);font-size:17px;color:var(--ink-soft);min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+.pv-cards .day-head p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pv-cards .add-row{margin-left:0;justify-content:center;margin-top:12px}
+
 /* 맨 위로 버튼 */
 .to-top{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;width:52px;height:52px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--grass);box-shadow:0 8px 20px -8px rgba(60,50,30,.5);font-family:var(--title);font-size:11.5px;line-height:1;opacity:0;transform:translateY(12px) scale(.9);pointer-events:none;transition:opacity .25s,transform .25s}
 .to-top svg{width:20px;height:20px}
@@ -1120,7 +1148,60 @@ function renderPlan(){
   const stops = journeyStops(curDay);
   if(document.querySelector("#journey")) placeFox(curDay, null, foxIndex(stops));
 }
+/* 일정 보기: "cards"(장소 카드 넘기기, 기본) | "list"(하루 전체 보기) */
+let planView = lsGet("hk-planview", "cards");
+const slideIdx = {};
+function viewBar(){
+  return `<div class="viewbar"><div class="viewbar-in" role="group" aria-label="일정 보기 방식">
+    <button data-pview="cards" aria-pressed="${planView === "cards"}">카드로 넘기기</button>
+    <button data-pview="list" aria-pressed="${planView === "list"}">하루 전체 보기</button>
+  </div></div>`;
+}
 function renderPlanHTML(){
+  renderPlanList();
+  const root = $("#v-plan");
+  root.querySelector(".days").insertAdjacentHTML("afterend", viewBar());
+  root.classList.toggle("pv-cards", planView === "cards");
+  if(planView === "cards") buildCards(root);
+}
+function slideTo(k, smooth){
+  const car = $("#car"); if(!car) return;
+  const sl = car.children[k]; if(!sl) return;
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  car.scrollTo({left: sl.offsetLeft - (car.clientWidth - sl.clientWidth) / 2, behavior: smooth && !reduce ? "smooth" : "auto"});
+}
+function buildCards(root){
+  const ol = root.querySelector("ol.tl"); if(!ol) return;
+  const items = dayItems(curDay);
+  const strip = document.createElement("div"); strip.className = "strip";
+  strip.innerHTML = items.map((i, k) => `<button data-sk="${k}" class="${state.done[i.id] ? "done" : ""}"><b>${esc(itemTime(i) || "·")}</b><span>${esc(shortName(i))}</span></button>`).join("");
+  const car = document.createElement("div"); car.className = "car"; car.id = "car"; car.setAttribute("aria-label", "장소 카드, 옆으로 넘겨 보세요");
+  [...ol.children].forEach(li => { const sl = document.createElement("div"); sl.className = "slide"; const o = document.createElement("ol"); o.className = "tl one"; o.appendChild(li); sl.appendChild(o); car.appendChild(sl); });
+  const nav = document.createElement("div"); nav.className = "car-nav";
+  nav.innerHTML = `<button data-cn="-1" aria-label="이전 장소">‹</button><span id="carPos" aria-live="polite"></span><button data-cn="1" aria-label="다음 장소">›</button>`;
+  ol.replaceWith(strip); strip.after(car); car.after(nav);
+  const sync = () => {
+    if(!car.isConnected) return;
+    let best = 0, bd = 1e9; const mid = car.scrollLeft + car.clientWidth / 2;
+    [...car.children].forEach((sl, k) => { const d = Math.abs(sl.offsetLeft + sl.clientWidth / 2 - mid); if(d < bd){ bd = d; best = k; } });
+    slideIdx[curDay] = best;
+    $("#carPos").textContent = `${best + 1} / ${car.children.length}`;
+    nav.children[0].disabled = best === 0; nav.children[2].disabled = best === car.children.length - 1;
+    strip.querySelectorAll("button").forEach((b, k) => b.classList.toggle("on", k === best));
+    const ch = strip.children[best]; if(ch) strip.scrollTo({left: ch.offsetLeft - strip.clientWidth / 2 + ch.clientWidth / 2, behavior: "smooth"});
+  };
+  let t = null;
+  car.addEventListener("scroll", () => { clearTimeout(t); t = setTimeout(sync, 80); }, {passive:true});
+  car.addEventListener("scrollend", sync);
+  strip.addEventListener("click", e => { const b = e.target.closest("[data-sk]"); if(b){ slideIdx[curDay] = +b.dataset.sk; slideTo(+b.dataset.sk, true); } });
+  nav.addEventListener("click", e => { const b = e.target.closest("[data-cn]"); if(b) slideTo((slideIdx[curDay] || 0) + (+b.dataset.cn), true); });
+  if(slideIdx[curDay] == null){
+    const first = items.findIndex(i => !state.done[i.id]);   // 처음 열면 아직 안 간 첫 장소부터
+    slideIdx[curDay] = first < 0 ? items.length - 1 : first;
+  }
+  requestAnimationFrame(() => { slideTo(slideIdx[curDay] || 0, false); sync(); });
+}
+function renderPlanList(){
   const day = DAYS.find(d => d.n === curDay) || DAYS[0];
   const items = dayItems(day.n), hidden = hiddenItems(day.n);
   const cost = items.reduce((s,i) => s + (Number(i.cost)||0), 0);
@@ -1533,6 +1614,7 @@ async function doUpload(files, day, spot, cap, progEl, msgEl){
 document.addEventListener("click", async e => {
   const t = e.target.closest("button, img[data-open]"); if(!t) return;
   if(t.id === "toTop"){ return goTop(); }
+  if(t.dataset.pview){ planView = t.dataset.pview; lsSet("hk-planview", planView); return renderPlan(); }
   if(t.classList.contains("tab")){ if(t.dataset.v === view) return goTop(); return show(t.dataset.v); }
   if(t.dataset.goinfo !== undefined){ return show("info"); }
   if(t.dataset.day){ curDay = Number(t.dataset.day); lsSet("hk-day", curDay); return renderPlan(); }
@@ -1546,6 +1628,10 @@ document.addEventListener("click", async e => {
     if(state.done[id] && k >= 0){
       const from = before >= 0 && before !== k ? shortName(stops[before]) : "출발";
       walkToast(from, shortName(stops[k]));
+    }
+    if(state.done[id] && planView === "cards"){
+      const idx = dayItems(curDay).findIndex(i => i.id === id);
+      if(idx >= 0){ slideIdx[curDay] = idx; slideTo(idx, false); setTimeout(() => { if($("#car") && slideIdx[curDay] === idx){ slideIdx[curDay] = idx + 1; slideTo(idx + 1, true); } }, 1500); }
     }
     return;
   }
