@@ -253,6 +253,37 @@ label.f{display:grid;gap:4px;font-size:12.5px;color:var(--ink-soft)}
 .lb-nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between}
 .x{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:4px 14px}
 
+/* 여정 스탬프 지도 */
+.journey{margin-top:14px;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 12px 6px;overflow:hidden}
+.journey-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:0 4px}
+.journey-head h3{margin:0;font-family:var(--hand);font-size:22px}
+.journey-head span{font-family:var(--hand);font-weight:700;font-size:16px;color:var(--tomato)}
+.journey svg{display:block;width:100%;height:auto;max-width:100%}
+.j-path{fill:none;stroke:var(--line);stroke-width:5;stroke-linecap:round;stroke-dasharray:1 9}
+.j-trail{fill:none;stroke:var(--tomato);stroke-width:4;stroke-linecap:round;opacity:.75}
+.j-stop circle.j-dot{fill:var(--card);stroke:var(--line);stroke-width:2}
+.j-stop text.j-k{font-family:var(--jp);font-size:13px;fill:var(--ink-faint);text-anchor:middle;dominant-baseline:central}
+.j-stop text.j-l{font-family:var(--sans);font-size:10.5px;fill:var(--ink-soft);text-anchor:middle}
+.j-stop.on circle.j-dot{fill:var(--tomato);stroke:var(--tomato)}
+.j-stop.on text.j-k{fill:#fff}
+.j-stop.on text.j-l{fill:var(--ink);font-weight:700}
+.j-stamp{opacity:0}
+.j-stop.on .j-stamp{opacity:.9}
+.j-stop.pop circle.j-dot{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+.j-stop circle.j-dot{transform-box:fill-box;transform-origin:center}
+.j-deco{fill:var(--grass-soft)}
+.fox-body{animation:bob 1.6s ease-in-out infinite}
+.fox.walk .fox-body{animation:bob .32s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+.fox-bubble{font-family:var(--hand);font-weight:700;font-size:13px;fill:var(--ink)}
+.fox-bubble-bg{fill:var(--card);stroke:var(--tomato);stroke-width:1.5}
+.walk-toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;width:min(360px,calc(100% - 32px));background:var(--card);border:1.5px solid var(--line);border-radius:20px 16px 22px 14px;box-shadow:0 12px 30px -10px rgba(0,0,0,.35);padding:8px 12px 10px;transition:opacity .4s}
+.walk-toast.out{opacity:0}
+.walk-toast p{margin:0;text-align:center;font-family:var(--hand);font-weight:700;font-size:17px}
+.walk-toast svg{display:block;width:100%;height:auto}
+@media (prefers-reduced-motion:reduce){.fox-body,.fox.walk .fox-body{animation:none}}
+
 /* 공유 앨범 */
 .chip.alb{text-decoration:none;color:#fff;background:var(--tomato);font-weight:700}
 .album-card{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
@@ -1075,6 +1106,11 @@ function dayDate(n){
 }
 
 function renderPlan(){
+  renderPlanHTML();
+  const stops = journeyStops(curDay);
+  if(document.querySelector("#journey")) placeFox(curDay, null, foxIndex(stops));
+}
+function renderPlanHTML(){
   const day = DAYS.find(d => d.n === curDay) || DAYS[0];
   const items = dayItems(day.n), hidden = hiddenItems(day.n);
   const cost = items.reduce((s,i) => s + (Number(i.cost)||0), 0);
@@ -1098,6 +1134,7 @@ function renderPlan(){
         ${day.n===1 && itemById("d1-hotel") && toMin(itemTime(itemById("d1-hotel"))) > 16*60 ? `<span class="chip shu">비행기가 늦어 오후가 빠듯해요. '추천 추가' 일정은 빼세요</span>` : (items.some(i=>i.opt) ? `<span class="chip shu">추천 추가 일정 포함</span>` : "")}
       </div>
     </div>
+    ${journeyHTML(day)}
     <ol class="tl">
       ${items.map(stopHTML).join("")}
     </ol>
@@ -1488,7 +1525,19 @@ document.addEventListener("click", async e => {
   if(t.classList.contains("tab")) return show(t.dataset.v);
   if(t.dataset.goinfo !== undefined){ return show("info"); }
   if(t.dataset.day){ curDay = Number(t.dataset.day); lsSet("hk-day", curDay); return renderPlan(); }
-  if(t.dataset.done){ state.done[t.dataset.done] = !state.done[t.dataset.done]; saveState(); return renderPlan(); }
+  if(t.dataset.done){
+    const id = t.dataset.done, stops = journeyStops(curDay), before = foxIndex(stops);
+    state.done[id] = !state.done[id]; saveState();
+    const k = stops.findIndex(i => i.id === id);
+    renderPlanHTML();
+    const after = foxIndex(stops);
+    if(document.querySelector("#journey")) placeFox(curDay, state.done[id] && k >= 0 ? before : null, after);
+    if(state.done[id] && k >= 0){
+      const from = before >= 0 && before !== k ? shortName(stops[before]) : "출발";
+      walkToast(from, shortName(stops[k]));
+    }
+    return;
+  }
   if(t.dataset.open){ return openLB(t.dataset.open); }
   if(t.dataset.mf){ memFilter = t.dataset.mf; return renderMem(); }
   if(t.dataset.copy){ return copy(t.dataset.copy, t); }
@@ -1567,6 +1616,163 @@ document.addEventListener("drop", async e => {
   const files = [...e.dataTransfer.files].filter(f => f.type.startsWith("image/"));
   await doUpload(files, $("#upDay").value, $("#upSpot").value, $("#upCap").value.trim(), $("#upProg"), $("#upMsg"));
 });
+
+/* =========================================================
+   여정 스탬프 지도: 다녀온 곳을 체크하면 여우가 걸어가요
+   ========================================================= */
+const SHORT = {
+  "d1-cts":"신치토세", "d1-atm":"ATM", "d1-lunch":"라멘도장", "d1-rokka":"롯카테이", "d1-hotel":"호텔", "d1-beer":"맥주박물관",
+  "d1-factory":"팩토리", "d1-tanuki":"타누키코지", "d1-dinner":"징기스칸", "d1-night":"TV타워", "d1-parfait":"파르페",
+  "d2-music":"오르골당", "d2-letao":"르타오", "d2-sakai":"사카이마치", "d2-kitakaro":"기타카로", "d2-kamaei":"빵롤", "d2-canal":"운하",
+  "d2-market":"삼각시장", "d2-amato":"아마토", "d2-beer":"오타루비어", "d2-dusk":"가스등 운하", "d2-dinner":"스프카레", "d2-kinotoya":"소프트크림",
+  "d3-meet":"집합", "d3-patch":"패치워크", "d3-biei":"비에이", "d3-aoiike":"청의 호수", "d3-shirahige":"흰수염폭포", "d3-takushin":"탁신관",
+  "d3-shikisai":"사계채 언덕", "d3-dinner":"이자카야",
+  "d4-bfast":"아침", "d4-out":"체크아웃", "d4-souv":"공항 쇼핑", "d4-cts":"출국"
+};
+const JOURNEY_MOVES = new Set(["d1-cts", "d3-meet", "d4-cts"]);
+const shortName = i => SHORT[i.id] || (i.title.split("·").pop().trim().slice(0, 7));
+function journeyStops(n){
+  return dayItems(n).filter(i => i.type !== "fly" && (i.type !== "move" || JOURNEY_MOVES.has(i.id)));
+}
+function stopXY(k){
+  const row = Math.floor(k / 4), col = k % 4;
+  const xs = [48, 136, 224, 312];
+  return {x: row % 2 ? xs[3 - col] : xs[col], y: 44 + row * 84};
+}
+function journeyPathD(n){
+  let d = "";
+  for(let k=0; k<n; k++){
+    const p = stopXY(k);
+    if(k === 0){ d += `M${p.x} ${p.y}`; continue; }
+    const q = stopXY(k-1);
+    if(p.y === q.y){ d += ` Q${(p.x+q.x)/2} ${p.y + (k % 2 ? -14 : 14)} ${p.x} ${p.y}`; }
+    else { const side = q.x > 180 ? 1 : -1; d += ` C${q.x + side*52} ${q.y} ${p.x + side*52} ${p.y} ${p.x} ${p.y}`; }
+  }
+  return d;
+}
+function foxIndex(stops){ let m = -1; stops.forEach((i, k) => { if(state.done[i.id]) m = k; }); return m; }
+const FOX_SVG = `<g class="fox-body">
+  <path d="M7 7 C19 5 24 -6 16 -13 C18 -4 12 1 5 2Z" fill="#E8833A"/><path d="M16 -13 C21 -9 21 -4 18.5 -1 C18 -6 17 -9 16 -13Z" fill="#FFF7EC"/>
+  <ellipse cx="0" cy="7" rx="9" ry="7.5" fill="#E8833A"/><ellipse cx="-1" cy="9" rx="5" ry="4" fill="#FFF7EC"/>
+  <rect x="3" y="1" width="7" height="8" rx="2" fill="#5C9650"/>
+  <circle cx="-2" cy="-6" r="8.5" fill="#E8833A"/>
+  <path d="M-10 -9 L-9 -19 L-3 -13Z" fill="#E8833A"/><path d="M0 -13 L5 -20 L6 -9Z" fill="#E8833A"/>
+  <path d="M-8.6 -11 L-8.2 -16 L-5.2 -12.8Z" fill="#6B3B22"/><path d="M1.6 -12.4 L4.3 -16.6 L4.8 -10.6Z" fill="#6B3B22"/>
+  <path d="M-11 -5 Q-2 3 7 -5 Q-2 -1 -11 -5Z" fill="#FFF7EC"/>
+  <circle cx="-5.5" cy="-7.5" r="1.3" fill="#2E2219"/><circle cx="1.5" cy="-7.5" r="1.3" fill="#2E2219"/>
+  <circle cx="-2" cy="-3.6" r="1.2" fill="#2E2219"/>
+  <circle cx="-8" cy="-4.5" r="1.6" fill="#F4A6A0" opacity=".7"/><circle cx="4" cy="-4.5" r="1.6" fill="#F4A6A0" opacity=".7"/>
+  <ellipse cx="-5" cy="14" rx="2.6" ry="1.6" fill="#6B3B22"/><ellipse cx="4" cy="14" rx="2.6" ry="1.6" fill="#6B3B22"/>
+</g>`;
+function journeyHTML(day){
+  const stops = journeyStops(day.n);
+  if(stops.length < 2) return "";
+  const rows = Math.ceil(stops.length / 4), H = 44 + (rows - 1) * 84 + 48;
+  const on = stops.filter(i => state.done[i.id]).length;
+  const deco = [[20,14,26],[340,H-18,30],[190,H-6,40],[346,20,18]].map(([x,y,r]) => `<circle class="j-deco" cx="${x}" cy="${y}" r="${r}"/>`).join("");
+  return `<div class="journey" id="journey">
+    <div class="journey-head"><h3>여정 스탬프</h3><span>${on}/${stops.length} 도착</span></div>
+    <svg viewBox="0 0 360 ${H}" role="img" aria-label="${day.n}일차 여정 지도, ${stops.length}곳 중 ${on}곳 도착">
+      ${deco}
+      <path class="j-path" d="${journeyPathD(stops.length)}"/>
+      <path class="j-trail" id="jTrail" d="${journeyPathD(stops.length)}"/>
+      ${stops.map((i, k) => { const p = stopXY(k); const ty = TYPE[i.type] || TYPE.sight;
+        return `<g class="j-stop ${state.done[i.id] ? "on" : ""}" data-jk="${k}" transform="translate(${p.x} ${p.y})">
+          <circle class="j-dot" r="15"/>
+          <text class="j-k">${ty.k}</text>
+          <g class="j-stamp" transform="translate(12 -12) rotate(-12)"><circle r="6.5" fill="none" stroke="var(--tomato)" stroke-width="1.5"/><text font-size="7" text-anchor="middle" dominant-baseline="central" fill="var(--tomato)" font-family="var(--jp)">済</text></g>
+          <text class="j-l" y="29">${esc(shortName(i))}</text>
+        </g>`; }).join("")}
+      <g class="fox" id="jFox">${FOX_SVG}</g>
+    </svg>
+  </div>`;
+}
+/* 경로 위 각 정류장까지의 길이 */
+function stopLengths(n){
+  const out = [0];
+  const svgNS = "http://www.w3.org/2000/svg";
+  const tmp = document.createElementNS(svgNS, "svg"); tmp.setAttribute("width", "0"); tmp.setAttribute("height", "0"); tmp.style.position = "absolute";
+  document.body.appendChild(tmp);
+  const pth = document.createElementNS(svgNS, "path"); tmp.appendChild(pth);
+  let full = "";
+  const segs = journeyPathD(n).split(/(?=[QC])/);
+  segs.forEach((sg, k) => { full += sg; if(k > 0){ pth.setAttribute("d", full); out.push(pth.getTotalLength()); } });
+  tmp.remove();
+  return out;
+}
+let journeyAnim = null;
+function placeFox(dayN, fromK, toK){
+  const svg = document.querySelector("#journey svg"); if(!svg) return;
+  const stops = journeyStops(dayN);
+  const path = $("#jTrail"), fox = $("#jFox");
+  const L = stopLengths(stops.length), total = path.getTotalLength();
+  path.style.strokeDasharray = total + " " + total;
+  const setAt = (len, flip) => {
+    const pt = path.getPointAtLength(Math.max(0, Math.min(total, len)));
+    fox.setAttribute("transform", `translate(${pt.x} ${pt.y - 20}) scale(${flip ? -1 : 1} 1)`);
+    path.style.strokeDashoffset = total - len;
+  };
+  cancelAnimationFrame(journeyAnim);
+  const endLen = toK < 0 ? 0 : L[toK];
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(fromK == null || fromK === toK || reduce || toK < fromK){
+    setAt(endLen, false); fox.style.opacity = toK < 0 ? .55 : 1; return;
+  }
+  const startLen = fromK < 0 ? 0 : L[fromK];
+  const dur = Math.min(2600, Math.max(900, (endLen - startLen) * 6));
+  const t0 = performance.now();
+  fox.style.opacity = 1; fox.classList.add("walk");
+  let lastX = null;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / dur), e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+    const len = startLen + (endLen - startLen) * e;
+    const pt = path.getPointAtLength(len);
+    const flip = lastX != null && pt.x < lastX - .01;
+    if(lastX == null || Math.abs(pt.x - lastX) > .01) fox.dataset.flip = flip ? "1" : "";
+    lastX = pt.x;
+    setAt(len, fox.dataset.flip === "1");
+    if(t < 1) journeyAnim = requestAnimationFrame(step);
+    else {
+      fox.classList.remove("walk");
+      const st = document.querySelector(`.j-stop[data-jk="${toK}"]`); if(st){ st.classList.add("pop"); }
+    }
+  };
+  journeyAnim = requestAnimationFrame(step);
+}
+/* 체크할 때 화면 아래에 뜨는 짧은 걷기 애니메이션 */
+let toastTimer = null;
+function walkToast(fromName, toName){
+  const old = $("#walkToast"); if(old) old.remove();
+  const el = document.createElement("div");
+  el.className = "walk-toast"; el.id = "walkToast"; el.setAttribute("role", "status");
+  el.innerHTML = `<svg viewBox="0 0 300 70" aria-hidden="true">
+      <line x1="40" y1="48" x2="260" y2="48" stroke="var(--line)" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 8"/>
+      <line id="wtTrail" x1="40" y1="48" x2="40" y2="48" stroke="var(--tomato)" stroke-width="4" stroke-linecap="round" opacity=".75"/>
+      <circle cx="40" cy="48" r="6" fill="var(--tomato)"/><circle cx="260" cy="48" r="7" fill="var(--card)" stroke="var(--tomato)" stroke-width="2" id="wtEnd"/>
+      <text x="40" y="66" font-size="10" text-anchor="middle" fill="var(--ink-soft)">${esc(fromName)}</text>
+      <text x="260" y="66" font-size="10" text-anchor="middle" fill="var(--ink-soft)">${esc(toName)}</text>
+      <g class="fox walk" id="wtFox" transform="translate(40 30)">${FOX_SVG}</g>
+    </svg><p id="wtMsg">${esc(toName)}(으)로 가는 중…</p>`;
+  document.body.appendChild(el);
+  const fox = el.querySelector("#wtFox"), trail = el.querySelector("#wtTrail");
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const dur = reduce ? 0 : 1500, t0 = performance.now();
+  const step = now => {
+    const t = dur ? Math.min(1, (now - t0) / dur) : 1, e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+    const x = 40 + 220 * e;
+    fox.setAttribute("transform", `translate(${x} ${30 - Math.abs(Math.sin(t * Math.PI * 6)) * 3})`);
+    trail.setAttribute("x2", x);
+    if(t < 1) requestAnimationFrame(step);
+    else {
+      fox.classList.remove("walk");
+      el.querySelector("#wtEnd").setAttribute("fill", "var(--tomato)");
+      el.querySelector("#wtMsg").textContent = `도착! ${toName} 도장 쾅`;
+    }
+  };
+  requestAnimationFrame(step);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 450); }, dur + 1900);
+}
 
 /* =========================================================
    일정 편집기
