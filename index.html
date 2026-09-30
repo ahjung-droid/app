@@ -524,7 +524,7 @@ const DAYS = [
      dur:"약 15분", cost:250, costNote:"사쿠사쿠 파이 약 200엔대",
      desc:"삿포로역 바로 앞 롯카테이 본점에서만 파는 '사쿠사쿠 파이'. 바삭한 파이 속에 커스터드 크림을 채운 과자로, 만든 지 3시간 안에 먹어야 해서 본점 한정이에요. 하나 사서 호텔 가는 길에 드세요.",
      how:["삿포로역 남쪽 출구(南口)로 나와 서쪽으로 도보 약 3분(北4条西6丁目)","1층 매장에서 테이크아웃 → 삿포로역으로 돌아가 지하철 난보쿠선 타는 곳(地下鉄 さっぽろ駅)으로"],
-     tips:"화요일 휴무지만 1일차는 금요일이라 괜찮아요. 캐리어가 무거우면 생략하고 바로 호텔로 가세요.",
+     tips:"1층 매장은 10:00~17:30, 2층 카페는 수요일 휴무예요. 1일차는 금요일이라 괜찮아요. 캐리어가 무거우면 생략하고 바로 호텔로 가세요.",
      map:"六花亭 札幌本店"},
     {id:"d1-hotel", t:"15:45", type:"stay", title:"호텔 체크인", ja:"オディシス札幌大通公園ホテル",
      dur:"약 25분", cost:210, costNote:"지하철 210엔",
@@ -623,7 +623,7 @@ const DAYS = [
     {id:"d2-amato", t:"14:20", type:"snack", opt:true, title:"간식 · 아마토 크림젠자이", ja:"小樽あまとう 本店",
      dur:"약 30분", cost:900, costNote:"크림젠자이 약 700~1,000엔",
      desc:"1929년에 문을 연 오타루 노포 과자점. 아이스크림에 팥과 찹쌀떡을 올린 '크림젠자이'가 대표 메뉴예요. 해산물 점심 뒤 달달한 디저트로 좋아요.",
-     how:["삼각시장에서 오타루역 앞을 지나 남쪽 상점가(都通り·サンモール) 방향으로 도보 약 5분(稲穂2丁目)","2층 카페에서 주문"],
+     how:["삼각시장에서 오타루역 앞 큰길을 건너 역 정면 아케이드 상점가 '都通り(미야코도리)'로 들어가기","아케이드 안쪽으로 도보 약 5분(稲穂2丁目16-18) → 2층 카페에서 주문"],
      tips:"2층 카페는 12:00~17:00, 수·목 휴무. 2일차는 토요일이라 괜찮아요.",
      map:"小樽あまとう 本店"},
     {id:"d2-beer", t:"15:00", type:"beer", title:"오타루 맥주 한잔", ja:"小樽倉庫No.1（小樽ビール）",
@@ -701,7 +701,8 @@ const DAYS = [
   items:[
     {id:"d4-bfast", t:"07:00", type:"food", title:"아침 · 호텔 근처", ja:"朝ごはん",
      dur:"약 40분", cost:800, costNote:"500~1,500엔",
-     desc:"호텔 조식을 신청했다면 호텔에서, 아니라면 근처 편의점(홋카이도 편의점 세이코마트의 따뜻한 도시락 '핫셰프' 추천)이나 카페에서 간단히 드세요.",
+     desc:"호텔 조식을 신청했다면 호텔에서, 아니라면 홋카이도 편의점 세이코마트에서 간단히 드세요. 가장 가까운 지점은 오도리 니시5초메(6:30~24:00)예요.",
+     how:["호텔 → 오도리 공원을 따라 동쪽으로 도보 약 5분 → 大通西5丁目의 세이코마트"],
      tips:"해산물 아침(니조시장)은 시간이 빠듯해서 뺐어요. 해산물 덮밥은 2일차 삼각시장에서 드세요.",
      map:"セイコーマート 大通西"},
     {id:"d4-out", t:"07:45", type:"stay", title:"호텔 체크아웃", ja:"チェックアウト",
@@ -734,6 +735,55 @@ const REL = {
   "d4-bfast":["back",-315], "d4-out":["back",-270], "d4-jr":["back",-225], "d4-souv":["back",-185], "d4-cts":["back",-120], "d4-fly":["back",0]
 };
 
+/* 지도·길찾기 검색어: 가게 이름만 넣으면 구글지도가 근처 역을 잡는 경우가 있어 주소까지 함께 넣음 */
+const PLACE = {
+  "d1-icn-in":{q:"인천국제공항 제1여객터미널"},
+  "d1-cts":{q:"新千歳空港 国際線ターミナルビル"},
+  "d1-atm":{q:"イオン銀行ATM 新千歳空港国際線ターミナル"},
+  "d1-lunch":{q:"北海道ラーメン道場 新千歳空港国内線ターミナルビル3F"},
+  "d1-jr":{q:"JR新千歳空港駅"},
+  "d1-rokka":{q:"六花亭 札幌本店 札幌市中央区北4条西6丁目3-3"},
+  "d1-hotel":{q:"オディシス札幌大通公園ホテル 札幌市中央区大通西8丁目2-36"},
+  "d1-beer":{q:"サッポロビール博物館 札幌市東区北7条東9丁目1-1"},
+  "d1-factory":{q:"サッポロファクトリー 札幌市中央区北2条東4丁目"},
+  "d1-tanuki":{q:"MEGAドン・キホーテ札幌狸小路本店 札幌市中央区南3条西4丁目12-1"},
+  "d1-dinner":{q:"成吉思汗だるま本店 札幌市中央区南5条西4丁目"},
+  "d1-night":{q:"さっぽろテレビ塔 札幌市中央区大通西1丁目"},
+  "d1-parfait":{q:"パフェ、珈琲、酒、佐藤 札幌市中央区南1条西2丁目1-2"},
+  "d2-go":{q:"JR札幌駅"},
+  "d2-jr":{q:"JR南小樽駅"},
+  "d2-music":{q:"小樽オルゴール堂本館 小樽市住吉町4-1"},
+  "d2-letao":{q:"小樽洋菓子舗ルタオ本店 小樽市堺町7-16"},
+  "d2-sakai":{q:"北一硝子三号館 小樽市堺町7-26"},
+  "d2-kitakaro":{q:"北菓楼 小樽本館 小樽市堺町7-22"},
+  "d2-kamaei":{q:"かま栄 工場直売店 小樽市堺町3-7"},
+  "d2-canal":{q:"小樽運河 浅草橋街園"},
+  "d2-market":{q:"小樽三角市場 小樽市稲穂3丁目10-16"},
+  "d2-amato":{q:"あまとう本店 小樽市稲穂2丁目16-18"},
+  "d2-beer":{q:"小樽倉庫No.1 小樽市港町5-4"},
+  "d2-dusk":{q:"小樽運河 浅草橋街園"},
+  "d2-back":{q:"JR小樽駅"},
+  "d2-dinner":{q:"スープカレーGARAKU札幌本店 札幌市中央区南3条東2丁目6-1"},
+  "d2-kinotoya":{q:"きのとや 大通公園店 札幌市中央区大通西3丁目 大通ビッセ"},
+  "d3-meet":{q:"バスセンター前駅 2番出口 札幌市中央区"},
+  "d3-patch":{q:"ケンとメリーの木 美瑛町大久保協生"},
+  "d3-biei":{q:"JR美瑛駅"},
+  "d3-aoiike":{q:"白金青い池 美瑛町白金"},
+  "d3-shirahige":{q:"白ひげの滝 美瑛町白金"},
+  "d3-takushin":{q:"拓真館 美瑛町字拓進"},
+  "d3-shikisai":{q:"四季彩の丘 美瑛町新星第三"},
+  "d3-drop":{q:"すすきの駅 札幌市営地下鉄"},
+  "d3-dinner":{q:"居酒屋 すすきの", dir:"すすきの駅 札幌市営地下鉄", list:true},
+  "d3-home":{q:"オディシス札幌大通公園ホテル 札幌市中央区大通西8丁目2-36"},
+  "d4-bfast":{q:"セイコーマート 札幌市中央区大通西5丁目8"},
+  "d4-out":{q:"オディシス札幌大通公園ホテル 札幌市中央区大通西8丁目2-36"},
+  "d4-jr":{q:"JR札幌駅"},
+  "d4-souv":{q:"新千歳空港 国内線ターミナルビル 2F ショッピングワールド"},
+  "d4-cts":{q:"新千歳空港 国際線ターミナルビル"}
+};
+const placeQ = i => (PLACE[i.id] && PLACE[i.id].q) || i.map;
+const placeDir = i => (PLACE[i.id] && (PLACE[i.id].dir || PLACE[i.id].q)) || i.map;
+
 /* 장소별 더 알아보기: kq = 한국어 검색어, wiki = 위키백과 검색어, web = 공식 사이트 */
 const LINKS = {
   "d1-icn-in":{kq:"트리니티항공 인천공항 제1터미널 체크인", web:"https://www.airport.kr/"},
@@ -744,7 +794,7 @@ const LINKS = {
   "d1-hotel":{kq:"오디시스 삿포로 오도리 공원 호텔"},
   "d1-beer":{kq:"삿포로 맥주박물관", wiki:"삿포로 맥주 박물관", web:"https://www.sapporobeer.jp/brewery/s_museum/"},
   "d1-factory":{kq:"삿포로 팩토리", wiki:"삿포로 팩토리"},
-  "d1-tanuki":{kq:"삿포로 타누키코지 돈키호테", wiki:"다누키코지 상점가"},
+  "d1-tanuki":{kq:"삿포로 타누키코지 돈키호테", web:"https://www.donki.com/store/shop_detail.php?shop_id=555"},
   "d1-dinner":{kq:"삿포로 다루마 징기스칸", wiki:"징기스칸 요리", web:"https://tabelog.com/en/hokkaido/A0101/A010103/1000007/"},
   "d1-rokka":{kq:"롯카테이 삿포로 본점 사쿠사쿠 파이", web:"https://www.rokkatei.co.jp/facilities/%E6%9C%AD%E5%B9%8C%E6%9C%AC%E5%BA%97-9/"},
   "d1-parfait":{kq:"삿포로 시메파르페 사토", web:"https://www.sapporo.travel/gourmet/shop/shop_649/"},
@@ -757,18 +807,18 @@ const LINKS = {
   "d2-market":{kq:"오타루 삼각시장 카이센동", web:"http://otaru-sankaku.com/"},
   "d2-canal":{kq:"오타루 운하", wiki:"오타루 운하", web:"https://otaru.gr.jp/"},
   "d2-beer":{kq:"오타루 창고 No.1 오타루 비어", web:"https://otaru.gr.jp/shop/otarubeer"},
-  "d2-sakai":{kq:"오타루 사카이마치 거리 기타이치 글라스", wiki:"오타루시"},
-  "d2-letao":{kq:"르타오 본점 오타루", web:"https://www.letao.jp/"},
-  "d2-music":{kq:"오타루 오르골당 본관 증기시계"},
+  "d2-sakai":{kq:"오타루 기타이치 글라스 3호관", web:"https://kitaichiglass.co.jp/kitaichihall/"},
+  "d2-letao":{kq:"르타오 본점 오타루", web:"https://www.letao-brand.jp/shop/letao/"},
+  "d2-music":{kq:"오타루 오르골당 본관 증기시계", web:"https://otaru.gr.jp/shop/orgel-doh-mainbuilding"},
   "d2-dusk":{kq:"오타루 운하 가스등 야경", web:"https://otaru.gr.jp/"},
   "d2-dinner":{kq:"삿포로 스프카레 가라쿠", wiki:"수프 카레", web:"https://s-garaku.com/shop-garaku/"},
   "d3-meet":{kq:"잇쇼니투어 비에이 버스센터마에 2번출구"},
-  "d3-patch":{kq:"비에이 패치워크 로드", wiki:"비에이정"},
+  "d3-patch":{kq:"비에이 패치워크 로드 켄과 메리의 나무", web:"https://www.biei-hokkaido.jp/ja/facility/ken-merry-tree"},
   "d3-biei":{kq:"비에이역 카레우동", wiki:"비에이역"},
   "d3-aoiike":{kq:"비에이 청의 호수 소프트크림", wiki:"청의 호수", web:"https://www.biei-hokkaido.jp/ja/facility/shirogane-blue-pond"},
   "d3-shirahige":{kq:"흰수염 폭포 시로가네", wiki:"시로가네 온천"},
   "d3-takushin":{kq:"비에이 탁신관 자작나무"},
-  "d3-shikisai":{kq:"사계채의 언덕 비에이"},
+  "d3-shikisai":{kq:"사계채의 언덕 비에이", web:"https://www.shikisainooka.jp/"},
   "d3-dinner":{kq:"스스키노 이자카야 추천"},
   "d4-souv":{kq:"신치토세 공항 국내선 기념품 쇼핑", web:"https://www.new-chitose-airport.jp/ko/"},
   "d4-cts":{kq:"신치토세 공항 국제선 진에어 체크인", web:"https://www.new-chitose-airport.jp/ko/"}
@@ -798,28 +848,28 @@ const photoPage = f => "https://commons.wikimedia.org/wiki/File:" + encodeURICom
 
 /* 먹킷리스트: cat meal=식사, snack=간식 · map=지도 검색어, web=공식/정보 페이지, kq=한국어 후기 검색어 */
 const FOODS = [
-  {cat:"meal", k:"麺", id:"f-ramen", name:"미소라멘 · 홋카이도 라멘도장", ja:"北海道ラーメン道場", where:"1일차 점심 · 신치토세 공항 국내선 3층", price:"1,100~1,600엔", note:"홋카이도 유명 라멘집 10곳이 한 층에. 삿포로식 미소라멘부터 드세요.", map:"北海道ラーメン道場 新千歳空港", web:"https://www.hokkaido-airports.com/en/new-chitose/special/airport-noodle/", kq:"신치토세 공항 라멘도장"},
-  {cat:"meal", k:"羊", id:"f-jingis", name:"징기스칸 · 다루마 본점", ja:"成吉思汗 だるま 本店", where:"1일차 저녁 · 스스키노 南5条西4丁目", price:"1인 3,000~4,500엔", note:"1954년 개업한 노포. 17:00~새벽 5:00, 연중무휴(연말연시 제외). 현금 준비.", map:"だるま本店 すすきの", web:"https://tabelog.com/en/hokkaido/A0101/A010103/1000007/", kq:"삿포로 다루마 징기스칸 본점"},
-  {cat:"meal", k:"丼", id:"f-kaisen", name:"카이센동 · 오타루 삼각시장", ja:"小樽三角市場", where:"2일차 점심 · 오타루역 옆", price:"2,000~4,500엔", note:"성게·연어알·게살 덮밥. 6:00~17:00(가게마다 다름), 연중무휴.", map:"小樽三角市場", web:"http://otaru-sankaku.com/", kq:"오타루 삼각시장 카이센동"},
-  {cat:"meal", k:"酒", id:"f-otarubeer", name:"오타루 비어 · 오타루 창고 No.1", ja:"小樽倉庫No.1", where:"2일차 오후 · 오타루 운하 옆", price:"한 잔 700~1,000엔", note:"운하 옆 브루어리. 11:00~22:00, 2시간 맥주 무제한 2,600엔.", map:"小樽倉庫No.1", web:"https://otaru.gr.jp/shop/otarubeer", kq:"오타루 창고 No.1 맥주"},
-  {cat:"meal", k:"辛", id:"f-soup", name:"스프카레 · GARAKU 본점", ja:"スープカレー GARAKU 札幌本店", where:"2일차 저녁 · 南3条東2丁目 지하 1층", price:"1,500~2,200엔", note:"삿포로 대표 스프카레. 저녁 17:00~21:00(LO 20:30), 대기 명단 작성.", map:"スープカレー GARAKU 札幌本店", web:"https://s-garaku.com/shop-garaku/", kq:"삿포로 스프카레 가라쿠 본점"},
-  {cat:"meal", k:"鶏", id:"f-zangi", name:"잔기 · 홋케구이 + 삿포로 클래식", ja:"すすきの 居酒屋", where:"3일차 저녁 · 스스키노", price:"1인 3,500~6,000엔", note:"홋카이도식 닭튀김, 임연수 구이에 홋카이도 한정 맥주 삿포로 클래식.", map:"すすきの 居酒屋", kq:"스스키노 이자카야 추천"},
-  {cat:"meal", k:"鮨", id:"f-sushi", name:"회전초밥 · 네무로 하나마루", ja:"回転寿司 根室花まる JRタワーステラプレイス店", where:"대안 · 삿포로역 스텔라플레이스 6층", price:"1인 2,000~4,000엔", note:"현지인도 줄 서는 회전초밥. 도착하면 대기 번호표부터.", map:"根室花まる JRタワーステラプレイス店", web:"https://www.sushi-hanamaru.com/store/details/s03.html?p=a", kq:"네무로 하나마루 스텔라플레이스"},
-  {cat:"meal", k:"麺", id:"f-yokocho", name:"시메 라멘 · 라멘요코초", ja:"元祖さっぽろラーメン横丁", where:"3일차 2차 · 스스키노역 도보 3분", price:"1,000~1,500엔", note:"작은 라멘집들이 모인 좁은 골목. 술자리 마무리로.", map:"元祖さっぽろラーメン横丁", kq:"삿포로 라멘요코초"},
+  {cat:"meal", k:"麺", id:"f-ramen", name:"미소라멘 · 홋카이도 라멘도장", ja:"北海道ラーメン道場", where:"1일차 점심 · 신치토세 공항 국내선 3층", price:"1,100~1,600엔", note:"홋카이도 유명 라멘집 10곳이 한 층에. 삿포로식 미소라멘부터 드세요.", map:"北海道ラーメン道場 新千歳空港国内線ターミナルビル3F", web:"https://www.hokkaido-airports.com/en/new-chitose/special/airport-noodle/", kq:"신치토세 공항 라멘도장"},
+  {cat:"meal", k:"羊", id:"f-jingis", name:"징기스칸 · 다루마 본점", ja:"成吉思汗 だるま 本店", where:"1일차 저녁 · 스스키노 南5条西4丁目", price:"1인 3,000~4,500엔", note:"1954년 개업한 노포. 17:00~새벽 5:00, 연중무휴(연말연시 제외). 현금 준비.", map:"成吉思汗だるま本店 札幌市中央区南5条西4丁目", web:"https://tabelog.com/en/hokkaido/A0101/A010103/1000007/", kq:"삿포로 다루마 징기스칸 본점"},
+  {cat:"meal", k:"丼", id:"f-kaisen", name:"카이센동 · 오타루 삼각시장", ja:"小樽三角市場", where:"2일차 점심 · 오타루역 옆", price:"2,000~4,500엔", note:"성게·연어알·게살 덮밥. 6:00~17:00(가게마다 다름), 연중무휴.", map:"小樽三角市場 小樽市稲穂3丁目10-16", web:"http://otaru-sankaku.com/", kq:"오타루 삼각시장 카이센동"},
+  {cat:"meal", k:"酒", id:"f-otarubeer", name:"오타루 비어 · 오타루 창고 No.1", ja:"小樽倉庫No.1", where:"2일차 오후 · 오타루 운하 옆", price:"한 잔 700~1,000엔", note:"운하 옆 브루어리. 11:00~22:00, 2시간 맥주 무제한 2,600엔.", map:"小樽倉庫No.1 小樽市港町5-4", web:"https://otaru.gr.jp/shop/otarubeer", kq:"오타루 창고 No.1 맥주"},
+  {cat:"meal", k:"辛", id:"f-soup", name:"스프카레 · GARAKU 본점", ja:"スープカレー GARAKU 札幌本店", where:"2일차 저녁 · 南3条東2丁目 지하 1층", price:"1,500~2,200엔", note:"삿포로 대표 스프카레. 저녁 17:00~21:00(LO 20:30), 대기 명단 작성.", map:"スープカレーGARAKU札幌本店 札幌市中央区南3条東2丁目6-1", web:"https://s-garaku.com/shop-garaku/", kq:"삿포로 스프카레 가라쿠 본점"},
+  {cat:"meal", k:"鶏", id:"f-zangi", name:"잔기 · 홋케구이 + 삿포로 클래식", ja:"すすきの 居酒屋", where:"3일차 저녁 · 스스키노", price:"1인 3,500~6,000엔", note:"홋카이도식 닭튀김, 임연수 구이에 홋카이도 한정 맥주 삿포로 클래식.", map:"居酒屋 すすきの", kq:"스스키노 이자카야 추천"},
+  {cat:"meal", k:"鮨", id:"f-sushi", name:"회전초밥 · 네무로 하나마루", ja:"回転寿司 根室花まる JRタワーステラプレイス店", where:"대안 · 삿포로역 스텔라플레이스 6층", price:"1인 2,000~4,000엔", note:"현지인도 줄 서는 회전초밥. 도착하면 대기 번호표부터.", map:"根室花まる JRタワーステラプレイス店 札幌市中央区北5条西2丁目 ステラプレイスセンター6F", web:"https://www.sushi-hanamaru.com/store/details/s03.html?p=a", kq:"네무로 하나마루 스텔라플레이스"},
+  {cat:"meal", k:"麺", id:"f-yokocho", name:"시메 라멘 · 라멘요코초", ja:"元祖さっぽろラーメン横丁", where:"3일차 2차 · 스스키노역 도보 3분", price:"1,000~1,500엔", note:"작은 라멘집들이 모인 좁은 골목. 술자리 마무리로.", map:"元祖さっぽろラーメン横丁 札幌市中央区南5条西3丁目6", kq:"삿포로 라멘요코초"},
 
-  {cat:"cafe", k:"灯", id:"c-kitaichi", name:"기타이치 홀 · 석유램프 카페", ja:"北一硝子 三号館 北一ホール", where:"2일차 오타루 · 사카이마치 거리", price:"커피·케이크 500~1,200엔", note:"1901년 창업 유리공방의 석조 창고. 석유램프 167개만으로 밝힌 어둑하고 따뜻한 공간. 9:00~17:30(LO 17:00).", map:"北一ホール 小樽", web:"https://kitaichiglass.co.jp/kitaichihall/", kq:"오타루 기타이치 홀 램프 카페"},
-  {cat:"cafe", k:"光", id:"c-hikari", name:"순끽다 히카리 · 1933년 노포 다방", ja:"純喫茶 光", where:"2일차 오타루 · 오타루역 도보 3분", price:"커피 600~900엔", note:"창업 90년이 넘은 레트로 다방. 스테인드글라스와 골동품 인테리어. 10:30~17:00, 수요일 휴무(2일차 토요일은 영업).", map:"純喫茶 光 小樽", web:"https://tabelog.com/hokkaido/A0106/A010601/1003940/", kq:"오타루 순끽다 히카리"},
-  {cat:"cafe", k:"書", id:"c-kitakaro", name:"기타카로 삿포로 본관 · 도서관 카페", ja:"北菓楼 札幌本館", where:"삿포로 · 호텔에서 도보 약 7분(北1条西5丁目)", price:"케이크 세트 1,000~1,500엔", note:"1926년 옛 도서관 건물. 2층 천장 높은 카페에 책 약 6,000권. 카페 11:00~16:00(디저트 LO 15:30), 화요일 휴무.", map:"北菓楼 札幌本館", web:"https://www.kitakaro.com/ext/tenpo/sapporohonkan.html", kq:"기타카로 삿포로 본관 카페"},
-  {cat:"cafe", k:"森", id:"c-morihico", name:"모리히코 본점 · 숲속 목조 주택 커피", ja:"森彦 本店", where:"삿포로 마루야마 · 니시11초메역에서 도자이선 2정거장 '円山公園' 4번 출구 도보 3분", price:"커피 700~1,000엔", note:"담쟁이 덮인 오래된 목조 주택을 고친 자가 배전 커피집. 9:00~20:00(LO 19:00). 2일차 오타루에서 돌아와 저녁 전에 들르기 좋아요.", map:"森彦 本店 札幌", kq:"삿포로 모리히코 본점"},
-  {cat:"snack", k:"焼", id:"f-sakusaku", name:"사쿠사쿠 파이 · 롯카테이 삿포로 본점", ja:"六花亭 札幌本店", where:"1일차 오후 · 삿포로역 남쪽 도보 3분", price:"약 200엔대", note:"본점 한정. 만든 지 3시간 안에 먹는 커스터드 파이. 화요일 휴무.", map:"六花亭 札幌本店", web:"https://www.rokkatei.co.jp/facilities/%E6%9C%AD%E5%B9%8C%E6%9C%AC%E5%BA%97-9/", kq:"롯카테이 삿포로 본점 사쿠사쿠 파이"},
-  {cat:"snack", k:"夜", id:"f-parfait", name:"시메 파르페 · 파르페, 커피, 술, 사토", ja:"パフェ、珈琲、酒、佐藤", where:"1일차 밤 · 南1条西2丁目", price:"1,500~2,000엔", note:"13:00~24:00, 금·토는 25:00까지. 술 마신 뒤 먹는 삿포로식 디저트.", map:"パフェ、珈琲、酒、佐藤 札幌", web:"https://www.sapporo.travel/gourmet/shop/shop_649/", kq:"삿포로 시메파르페 사토"},
-  {cat:"snack", k:"乳", id:"f-letao", name:"더블 프로마주 · 르타오 본점", ja:"小樽洋菓子舗ルタオ本店", where:"2일차 오전 · 메르헨 교차로", price:"케이크 세트 1,000~1,500엔", note:"레어+베이크드 2층 치즈케이크. 2층 카페, 꼭대기 전망 탑.", map:"ルタオ本店 小樽", web:"https://www.letao.jp/", kq:"르타오 본점 오타루 카페"},
-  {cat:"snack", k:"菓", id:"f-kitakaro", name:"슈크림 · 기타카로 오타루 본관", ja:"北菓楼 小樽本館", where:"2일차 · 사카이마치 거리", price:"200~500엔대", note:"월~토 9:00~17:00, 일요일 휴무. 바움쿠헨은 기념품으로.", map:"北菓楼 小樽本館", web:"https://www.kitakaro.com/ext/tenpo/otaru.html", kq:"기타카로 오타루 본관 슈크림"},
-  {cat:"snack", k:"揚", id:"f-panroll", name:"빵롤 · 카마에이 공장직매점", ja:"かま栄 工場直売店", where:"2일차 · 사카이마치 거리 북쪽 끝", price:"1개 수백 엔", note:"어묵 반죽을 빵으로 감싸 튀긴 오타루 명물. 공장 견학 무료.", map:"かま栄 工場直売店", web:"https://kamaei.co.jp/store_introduce/chokubai/", kq:"오타루 카마에이 빵롤"},
-  {cat:"snack", k:"餡", id:"f-amato", name:"크림젠자이 · 아마토 본점", ja:"小樽あまとう 本店", where:"2일차 점심 후 · 오타루역 남쪽 상점가", price:"700~1,000엔", note:"1929년 창업 노포. 2층 카페 12:00~17:00, 수·목 휴무.", map:"小樽あまとう 本店", web:"https://otaru-amato.com/shop/", kq:"오타루 아마토 크림젠자이"},
-  {cat:"snack", k:"冷", id:"f-kinotoya", name:"우유 소프트크림 · 키노토야 오도리 공원점", ja:"きのとや 大通公園店", where:"2일차 밤 · 오도리 니시3초메 BISSE 1층", price:"450엔", note:"직영 목장 우유 소프트와 갓 구운 치즈타르트.", map:"きのとや 大通公園店", web:"https://www.kinotoya.com/shop_list/oodoori/", kq:"키노토야 오도리공원점"},
-  {cat:"snack", k:"青", id:"f-aoisoft", name:"청의 호수 소프트크림", ja:"青い池ソフト", where:"3일차 · 청의 호수 매점", price:"500엔", note:"파란 라무네 맛 소프트 또는 비에이 우유 소프트. 매점 9:00~17:00.", map:"白金青い池 売店", web:"https://www.biei-hokkaido.jp/ja/facility/shirogane-blue-pond", kq:"청의 호수 소프트크림"},
-  {cat:"snack", k:"丘", id:"f-soft", name:"비에이 우유 소프트크림", ja:"四季彩の丘 ソフトクリーム", where:"3일차 · 사계채의 언덕 매점", price:"400~600엔", note:"진한 비에이 우유 맛. 투어 휴게 때 드세요.", map:"四季彩の丘", kq:"사계채의 언덕 소프트크림"},
+  {cat:"cafe", k:"灯", id:"c-kitaichi", name:"기타이치 홀 · 석유램프 카페", ja:"北一硝子 三号館 北一ホール", where:"2일차 오타루 · 사카이마치 거리", price:"커피·케이크 500~1,200엔", note:"1901년 창업 유리공방의 석조 창고. 석유램프 167개만으로 밝힌 어둑하고 따뜻한 공간. 9:00~17:30(LO 17:00).", map:"北一硝子三号館 北一ホール 小樽市堺町7-26", web:"https://kitaichiglass.co.jp/kitaichihall/", kq:"오타루 기타이치 홀 램프 카페"},
+  {cat:"cafe", k:"光", id:"c-hikari", name:"순끽다 히카리 · 1933년 노포 다방", ja:"純喫茶 光", where:"2일차 오타루 · 오타루역 도보 3분", price:"커피 600~900엔", note:"창업 90년이 넘은 레트로 다방. 스테인드글라스와 골동품 인테리어. 10:00~18:00 전후(계절에 따라 다름), 수요일 휴무(2일차 토요일은 영업).", map:"純喫茶 光 小樽市稲穂2丁目11-8", web:"https://tabelog.com/hokkaido/A0106/A010601/1003940/", kq:"오타루 순끽다 히카리"},
+  {cat:"cafe", k:"書", id:"c-kitakaro", name:"기타카로 삿포로 본관 · 도서관 카페", ja:"北菓楼 札幌本館", where:"삿포로 · 호텔에서 도보 약 7분(北1条西5丁目)", price:"케이크 세트 1,000~1,500엔", note:"1926년 옛 도서관 건물. 2층 천장 높은 카페에 책 약 6,000권. 카페 11:00~16:00(디저트 LO 15:30), 화요일 휴무.", map:"北菓楼 札幌本館 札幌市中央区北1条西5丁目1-2", web:"https://www.kitakaro.com/ext/tenpo/sapporohonkan.html", kq:"기타카로 삿포로 본관 카페"},
+  {cat:"cafe", k:"森", id:"c-morihico", name:"모리히코 본점 · 숲속 목조 주택 커피", ja:"森彦 本店", where:"삿포로 마루야마 · 니시11초메역에서 도자이선 2정거장 '円山公園' 4번 출구 도보 3분", price:"커피 700~1,000엔", note:"담쟁이 덮인 오래된 목조 주택을 고친 자가 배전 커피집. 9:00~20:00(LO 19:00). 2일차 오타루에서 돌아와 저녁 전에 들르기 좋아요.", map:"森彦 札幌市中央区南2条西26丁目2-18", kq:"삿포로 모리히코 본점"},
+  {cat:"snack", k:"焼", id:"f-sakusaku", name:"사쿠사쿠 파이 · 롯카테이 삿포로 본점", ja:"六花亭 札幌本店", where:"1일차 오후 · 삿포로역 남쪽 도보 3분", price:"약 200엔대", note:"본점 한정. 만든 지 3시간 안에 먹는 커스터드 파이. 매장 10:00~17:30(2층 카페는 수요일 휴무).", map:"六花亭 札幌本店 札幌市中央区北4条西6丁目3-3", web:"https://www.rokkatei.co.jp/facilities/%E6%9C%AD%E5%B9%8C%E6%9C%AC%E5%BA%97-9/", kq:"롯카테이 삿포로 본점 사쿠사쿠 파이"},
+  {cat:"snack", k:"夜", id:"f-parfait", name:"시메 파르페 · 파르페, 커피, 술, 사토", ja:"パフェ、珈琲、酒、佐藤", where:"1일차 밤 · 南1条西2丁目", price:"1,500~2,000엔", note:"13:00~24:00, 금·토는 25:00까지. 술 마신 뒤 먹는 삿포로식 디저트.", map:"パフェ、珈琲、酒、佐藤 札幌市中央区南1条西2丁目1-2", web:"https://www.sapporo.travel/gourmet/shop/shop_649/", kq:"삿포로 시메파르페 사토"},
+  {cat:"snack", k:"乳", id:"f-letao", name:"더블 프로마주 · 르타오 본점", ja:"小樽洋菓子舗ルタオ本店", where:"2일차 오전 · 메르헨 교차로", price:"케이크 세트 1,000~1,500엔", note:"레어+베이크드 2층 치즈케이크. 2층 카페, 꼭대기 전망 탑.", map:"小樽洋菓子舗ルタオ本店 小樽市堺町7-16", web:"https://www.letao-brand.jp/shop/letao/", kq:"르타오 본점 오타루 카페"},
+  {cat:"snack", k:"菓", id:"f-kitakaro", name:"슈크림 · 기타카로 오타루 본관", ja:"北菓楼 小樽本館", where:"2일차 · 사카이마치 거리", price:"200~500엔대", note:"월~토 9:00~17:00, 일요일 휴무. 바움쿠헨은 기념품으로.", map:"北菓楼 小樽本館 小樽市堺町7-22", web:"https://www.kitakaro.com/ext/tenpo/otaru.html", kq:"기타카로 오타루 본관 슈크림"},
+  {cat:"snack", k:"揚", id:"f-panroll", name:"빵롤 · 카마에이 공장직매점", ja:"かま栄 工場直売店", where:"2일차 · 사카이마치 거리 북쪽 끝", price:"1개 수백 엔", note:"어묵 반죽을 빵으로 감싸 튀긴 오타루 명물. 공장 견학 무료.", map:"かま栄 工場直売店 小樽市堺町3-7", web:"https://kamaei.co.jp/store_introduce/chokubai/", kq:"오타루 카마에이 빵롤"},
+  {cat:"snack", k:"餡", id:"f-amato", name:"크림젠자이 · 아마토 본점", ja:"小樽あまとう 本店", where:"2일차 점심 후 · 오타루역 남쪽 상점가", price:"700~1,000엔", note:"1929년 창업 노포. 2층 카페 12:00~17:00, 수·목 휴무.", map:"あまとう本店 小樽市稲穂2丁目16-18", web:"https://otaru-amato.com/shop/", kq:"오타루 아마토 크림젠자이"},
+  {cat:"snack", k:"冷", id:"f-kinotoya", name:"우유 소프트크림 · 키노토야 오도리 공원점", ja:"きのとや 大通公園店", where:"2일차 밤 · 오도리 니시3초메 BISSE 1층", price:"450엔", note:"직영 목장 우유 소프트와 갓 구운 치즈타르트.", map:"きのとや 大通公園店 札幌市中央区大通西3丁目 大通ビッセ", web:"https://www.kinotoya.com/shop_list/oodoori/", kq:"키노토야 오도리공원점"},
+  {cat:"snack", k:"青", id:"f-aoisoft", name:"청의 호수 소프트크림", ja:"青い池ソフト", where:"3일차 · 청의 호수 매점", price:"500엔", note:"파란 라무네 맛 소프트 또는 비에이 우유 소프트. 매점 9:00~17:00.", map:"白金青い池 美瑛町白金", web:"https://www.biei-hokkaido.jp/ja/facility/shirogane-blue-pond", kq:"청의 호수 소프트크림"},
+  {cat:"snack", k:"丘", id:"f-soft", name:"비에이 우유 소프트크림", ja:"四季彩の丘 ソフトクリーム", where:"3일차 · 사계채의 언덕 매점", price:"400~600엔", note:"진한 비에이 우유 맛. 투어 휴게 때 드세요.", map:"四季彩の丘 美瑛町新星第三", kq:"사계채의 언덕 소프트크림"},
   {cat:"snack", k:"雪", id:"f-souv", name:"로이스 · 시로이 코이비토", ja:"ROYCE' チョコレートワールド・白い恋人", where:"4일차 · 신치토세 공항", price:"800~2,000엔", note:"로이스 초콜릿 월드(연결통로)와 국내선 2층 기념품 거리. 나마초코는 보냉백과 함께.", map:"ロイズチョコレートワールド 新千歳空港", web:"https://www.new-chitose-airport.jp/ko/", kq:"신치토세 공항 로이스 초콜릿 월드"}
 ];
 
@@ -1240,7 +1290,8 @@ function renderPlanList(){
 
 function linkRow(i){
   const L = LINKS[i.id]; if(!L || i._custom) return "";
-  const a = [`<a class="lk" href="${imgUrl(i.ja.split(/[（(/・]/)[0].trim() || L.kq)}" target="_blank" rel="noopener">사진 보기</a>`];
+  const pq = PLACE[i.id] && !PLACE[i.id].list ? PLACE[i.id].q.split(/ (?=[^ ]*[0-9０-９丁])/)[0] : (i.ja.split(/[（(/・]/)[0].trim() || L.kq);
+  const a = [`<a class="lk" href="${imgUrl(pq)}" target="_blank" rel="noopener">사진 보기</a>`];
   if(L.wiki) a.push(`<a class="lk" href="${wikiUrl(L.wiki)}" target="_blank" rel="noopener">설명 (위키백과)</a>`);
   a.push(`<a class="lk" href="${blogUrl(L.kq)}" target="_blank" rel="noopener">여행 후기</a>`);
   if(L.web) a.push(`<a class="lk" href="${L.web}" target="_blank" rel="noopener">공식 사이트</a>`);
@@ -1269,8 +1320,8 @@ function stopHTML(i){
       ${linkRow(i)}
       ${ph.length > 1 ? `<div class="thumbs">${ph.slice(1,9).map(p => `<img src="${esc(p.url)}" alt="${esc(p.caption||i.title)}" data-open="${p.id}" loading="lazy">`).join("")}</div>` : ""}
       <div class="acts">
-        ${i.map ? `<a class="btn" href="${mapUrl(i.map)}" target="_blank" rel="noopener">지도</a>
-        <a class="btn" href="${dirUrl(i.map)}" target="_blank" rel="noopener">여기까지 길찾기</a>` : ""}
+        ${i.map && i.type !== "fly" ? `<a class="btn" href="${mapUrl(placeQ(i))}" target="_blank" rel="noopener">${PLACE[i.id] && PLACE[i.id].list ? "근처 가게 지도" : "지도"}</a>
+        <a class="btn" href="${dirUrl(placeDir(i))}" target="_blank" rel="noopener">여기까지 길찾기</a>` : ""}
         ${canUpload() ? `<button class="btn" data-quick="${i.id}">사진 추가${ph.length ? ` <span class="n">${ph.length}</span>` : ""}</button>` : ""}
         <button class="btn ${done ? "done-on" : ""}" data-done="${i.id}" aria-pressed="${done}">${done ? "다녀옴 ✓" : "다녀왔어요"}</button>
         <button class="btn" data-edit="${i.id}">수정</button>
